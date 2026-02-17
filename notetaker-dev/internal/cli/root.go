@@ -26,6 +26,11 @@ resume work in ~30 seconds without rereading Slack/LLM chats.`,
 	RunE:    runBrief,
 }
 
+func init() {
+	// Hide completion command from help (still works, just not shown)
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+}
+
 // Execute runs the root command
 func Execute() error {
 	return rootCmd.Execute()

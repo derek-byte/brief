@@ -12,11 +12,11 @@ import (
 
 var stashesCmd = &cobra.Command{
 	Use:   "stashes",
-	Short: "List all saved work across branches",
-	Long: `Show all saved stashes organized by branch.
+	Short: "List all saved work for this branch",
+	Long: `Show all saved stashes for the current branch.
 
-This helps you see what work-in-progress you have saved
-across different branches.
+Use this to see what work-in-progress you've saved on this branch.
+Use 'brief restore' to restore the most recent stash.
 
 Examples:
   brief stashes`,
@@ -28,8 +28,13 @@ func init() {
 }
 
 func runStashes(cmd *cobra.Command, args []string) error {
-	// Get repo root
+	// Get repo root and current branch
 	repoRoot, err := git.RepoRoot()
+	if err != nil {
+		return err
+	}
+
+	branch, err := git.CurrentBranch(repoRoot)
 	if err != nil {
 		return err
 	}
@@ -44,45 +49,44 @@ func runStashes(cmd *cobra.Command, args []string) error {
 	defer db.Close()
 
 	// Get all stashes for this repo
-	stashes, err := store.GetAllStashes(db, repoID)
+	allStashes, err := store.GetAllStashes(db, repoID)
 	if err != nil {
 		return err
 	}
 
+	// Filter to current branch only
+	var stashes []store.Event
+	for _, stash := range allStashes {
+		if stash.Branch == branch {
+			stashes = append(stashes, stash)
+		}
+	}
+
 	if len(stashes) == 0 {
-		fmt.Println("No saved work")
+		fmt.Printf("No saved work for branch '%s'\n", branch)
 		fmt.Println("Save work with: brief save \"message\"")
 		return nil
 	}
 
-	// Group by branch
-	stashesByBranch := make(map[string][]store.Event)
+	// Display stashes for current branch
+	fmt.Printf("Saved work for branch '%s' (%d stash%s):\n\n", branch, len(stashes), plural(len(stashes)))
+
 	for _, stash := range stashes {
-		stashesByBranch[stash.Branch] = append(stashesByBranch[stash.Branch], stash)
-	}
+		savedTime := time.Unix(stash.CreatedAt, 0)
+		timeAgo := formatTimeAgo(time.Since(savedTime))
 
-	// Display
-	fmt.Printf("Saved work (%d total):\n\n", len(stashes))
-
-	for branch, branchStashes := range stashesByBranch {
-		fmt.Printf("Branch: %s\n", branch)
-		for _, stash := range branchStashes {
-			savedTime := time.Unix(stash.CreatedAt, 0)
-			timeAgo := formatTimeAgo(time.Since(savedTime))
-
-			// Parse metadata for file count
-			var meta map[string]interface{}
-			fileCount := 0
-			if err := json.Unmarshal([]byte(stash.MetaJSON), &meta); err == nil {
-				if files, ok := meta["files"].([]interface{}); ok {
-					fileCount = len(files)
-				}
+		// Parse metadata for file count
+		var meta map[string]interface{}
+		fileCount := 0
+		if err := json.Unmarshal([]byte(stash.MetaJSON), &meta); err == nil {
+			if files, ok := meta["files"].([]interface{}); ok {
+				fileCount = len(files)
 			}
-
-			fmt.Printf("  • %s (%d files, %s)\n", stash.Text, fileCount, timeAgo)
 		}
-		fmt.Println()
+
+		fmt.Printf("  • %s (%d files, %s)\n", stash.Text, fileCount, timeAgo)
 	}
+	fmt.Println()
 
 	return nil
 }

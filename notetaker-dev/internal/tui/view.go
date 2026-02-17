@@ -18,7 +18,7 @@ func (m Model) renderWideFormat() string {
 	var out strings.Builder
 
 	// Group items by type in priority order
-	typeOrder := []string{"todo", "choice", "cmd", "error", "note"}
+	typeOrder := []string{"todo", "choice", "cmd", "note"}
 	grouped := make(map[string][]Item)
 
 	for _, item := range m.items {
@@ -102,11 +102,14 @@ func (m Model) renderCompactItem(item Item) string {
 	}
 
 	// Type label with tight brackets + padding for alignment
-	// Longest compact label is "todo" or "note" (4 chars) → [note] is 6 chars
-	compactLabel := getCompactLabel(item.Event.Type)
-	typeLabel := fmt.Sprintf("[%s]", compactLabel)
+	// Use same labels as wide format for consistency
+	typeLabel := fmt.Sprintf("[%s]", item.TypeLabel)
 	labelWidth := len(typeLabel)
-	padding := strings.Repeat(" ", 6-labelWidth)
+	paddingWidth := 8 - labelWidth // Max label is [choice] = 8 chars
+	if paddingWidth < 0 {
+		paddingWidth = 0 // Defensive: prevent panic
+	}
+	padding := strings.Repeat(" ", paddingWidth)
 	parts = append(parts, typeLabel+padding)
 
 	// Prefix + text + suffix
@@ -131,14 +134,7 @@ func (m Model) isItemSelected(item Item) bool {
 	return m.items[m.cursor].Event.ID == item.Event.ID
 }
 
-// getCompactLabel returns the compact version of a type label
+// getCompactLabel returns the compact version of a type label (currently unused)
 func getCompactLabel(eventType string) string {
-	switch eventType {
-	case "choice":
-		return "chc"
-	case "error":
-		return "err"
-	default:
-		return eventType // todo, cmd, note stay the same
-	}
+	return eventType // All types use full labels now
 }

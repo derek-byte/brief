@@ -107,8 +107,8 @@ func buildCountsString(eventsByType map[string][]store.Event, currentGoal *store
 		parts = append(parts, "1 goal")
 	}
 
-	// Order: choice, todo, cmd, error, fix, issue, link, note
-	order := []string{"choice", "todo", "cmd", "error", "fix", "issue", "link", "note"}
+	// Order: choice, todo, cmd, fix, note
+	order := []string{"choice", "todo", "cmd", "fix", "note"}
 	for _, t := range order {
 		if events, ok := eventsByType[t]; ok && len(events) > 0 {
 			count := len(events)

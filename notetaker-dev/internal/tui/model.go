@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
 )
 
@@ -21,6 +22,7 @@ const (
 // Model is the Bubble Tea model for the TUI
 type Model struct {
 	items      []Item
+	goal       *Item // Single goal displayed as header
 	cursor     int
 	format     ViewFormat
 	showTime   bool
@@ -42,7 +44,7 @@ type Item struct {
 
 // NewModel creates a new TUI model with the given events
 func NewModel(events []store.Event, branch string) Model {
-	items := buildItems(events)
+	items, goal := buildItems(events)
 
 	// Sort items to match wide format display order initially
 	// (grouped by type in priority order, then by timestamp within each type)
@@ -50,6 +52,7 @@ func NewModel(events []store.Event, branch string) Model {
 
 	return Model{
 		items:    items,
+		goal:     goal,
 		cursor:   0,
 		format:   FormatWide,
 		showTime: false, // Off by default, but toggleable
@@ -147,6 +150,12 @@ func (m Model) View() string {
 
 	var out strings.Builder
 
+	// Render goal as bold header if present
+	if m.goal != nil {
+		out.WriteString(m.renderGoalHeader())
+		out.WriteString("\n\n")
+	}
+
 	// Render items based on format
 	if m.format == FormatWide {
 		out.WriteString(m.renderWideFormat())
@@ -167,6 +176,12 @@ func (m Model) View() string {
 	return out.String()
 }
 
+// renderGoalHeader renders the goal as a bold header
+func (m Model) renderGoalHeader() string {
+	goalStyle := lipgloss.NewStyle().Bold(true)
+	return goalStyle.Render("Goal: " + m.goal.DisplayText)
+}
+
 // renderStatusLine shows current mode and hints
 func (m Model) renderStatusLine() string {
 	formatName := "wide"
@@ -174,9 +189,16 @@ func (m Model) renderStatusLine() string {
 		formatName = "compact"
 	}
 
-	return fmt.Sprintf("─────────────────────────────────────────\n"+
+	// Use terminal width for separator line, default to 80 if not set
+	width := m.width
+	if width == 0 {
+		width = 80
+	}
+	separator := strings.Repeat("─", width)
+
+	return fmt.Sprintf("%s\n"+
 		"%s · %s · %d items · ?=help v=view q=quit",
-		m.branch, formatName, len(m.items))
+		separator, m.branch, formatName, len(m.items))
 }
 
 // renderHelp shows keybindings
@@ -190,16 +212,27 @@ Quit:       q
 }
 
 // buildItems converts events into displayable items with formatting
-func buildItems(events []store.Event) []Item {
+// Returns items list and optional goal (displayed separately as header)
+func buildItems(events []store.Event) ([]Item, *Item) {
 	var items []Item
+	var goal *Item
+
 	for _, e := range events {
-		// Skip goal type (handled separately in rehydrate)
-		if e.Type == "goal" {
+		// Skip stash type (not shown in UI list)
+		if e.Type == "stash" {
 			continue
 		}
 
-		// Skip stash type (not shown in UI list)
-		if e.Type == "stash" {
+		// For goals, keep only the most recent one (displayed as header)
+		if e.Type == "goal" {
+			if goal == nil || e.CreatedAt > goal.Event.CreatedAt {
+				goalItem := Item{
+					Event:       e,
+					DisplayText: e.Text,
+					TypeLabel:   getDisplayLabel(e.Type),
+				}
+				goal = &goalItem
+			}
 			continue
 		}
 
@@ -217,19 +250,10 @@ func buildItems(events []store.Event) []Item {
 			item.Prefix = "$ "
 		}
 
-		// Add suffix for multiline errors
-		if e.Type == "error" {
-			lines := strings.Split(e.Text, "\n")
-			if len(lines) > 1 {
-				item.DisplayText = lines[0] // Show only first line
-				item.Suffix = fmt.Sprintf(" (+%d)", len(lines)-1)
-			}
-		}
-
 		items = append(items, item)
 	}
 
-	return items
+	return items, goal
 }
 
 // formatTimestamp formats Unix timestamp for display
@@ -243,8 +267,7 @@ func sortItemsForWideFormat(items []Item) {
 		"todo":   0,
 		"choice": 1,
 		"cmd":    2,
-		"error":  3,
-		"note":   4,
+		"note":   3,
 	}
 
 	sort.Slice(items, func(i, j int) bool {

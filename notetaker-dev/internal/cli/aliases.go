@@ -30,9 +30,10 @@ var cmdCmd = &cobra.Command{
 }
 
 var fixCmd = &cobra.Command{
-	Use:   "fix <text...>",
-	Short: "Add a fix note (shorthand for 'add fix')",
-	Args:  cobra.MinimumNArgs(1),
+	Use:    "fix <text...>",
+	Short:  "Add a fix note (shorthand for 'add fix')",
+	Hidden: true, // Hidden - rarely used
+	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
 		return addEvent("fix", text)
@@ -40,9 +41,10 @@ var fixCmd = &cobra.Command{
 }
 
 var decisionCmd = &cobra.Command{
-	Use:   "decision <text...>",
-	Short: "Add a choice (alias for backwards compatibility, use 'choice' instead)",
-	Args:  cobra.MinimumNArgs(1),
+	Use:    "decision <text...>",
+	Short:  "Add a choice (alias for backwards compatibility, use 'choice' instead)",
+	Hidden: true, // Hidden - use 'choice' instead
+	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
 		return addEvent("decision", text) // Will be normalized to "choice"
@@ -59,40 +61,11 @@ var choiceCmd = &cobra.Command{
 	},
 }
 
-var errorCmd = &cobra.Command{
-	Use:   "error <text...>",
-	Short: "Add an error note (shorthand for 'add error')",
-	Args:  cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		text := strings.Join(args, " ")
-		return addEvent("error", text)
-	},
-}
-
-var linkCmd = &cobra.Command{
-	Use:   "link <text...>",
-	Short: "Add a link (shorthand for 'add link')",
-	Args:  cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		text := strings.Join(args, " ")
-		return addEvent("link", text)
-	},
-}
-
-var issueCmd = &cobra.Command{
-	Use:   "issue <text...>",
-	Short: "Add an issue reference (shorthand for 'add issue')",
-	Args:  cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		text := strings.Join(args, " ")
-		return addEvent("issue", text)
-	},
-}
-
 var noteCmd = &cobra.Command{
-	Use:   "note <text...>",
-	Short: "Add a general note (shorthand for 'add note')",
-	Args:  cobra.MinimumNArgs(1),
+	Use:    "note <text...>",
+	Short:  "Add a general note (shorthand for 'add note')",
+	Hidden: true, // Hidden - use catch-all instead
+	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
 		return addEvent("note", text)
@@ -107,8 +80,5 @@ func init() {
 	rootCmd.AddCommand(fixCmd)
 	rootCmd.AddCommand(decisionCmd)
 	rootCmd.AddCommand(choiceCmd)
-	rootCmd.AddCommand(errorCmd)
-	rootCmd.AddCommand(linkCmd)
-	rootCmd.AddCommand(issueCmd)
 	rootCmd.AddCommand(noteCmd)
 }

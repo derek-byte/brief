@@ -16,19 +16,19 @@ import (
 var fromStdin bool
 
 var addCmd = &cobra.Command{
-	Use:   "add <type> <text...>",
-	Short: "Add a note to the current branch",
+	Use:    "add <type> <text...>",
+	Short:  "Add a note to the current branch",
+	Hidden: true, // Hidden - use shortcuts instead
 	Long: `Add a branch-scoped note of the specified type.
 
 Valid types:
-  goal, choice, todo, cmd, error, link, issue, note, fix
+  goal, choice, todo, cmd, note, fix
 
 Examples:
   brief add goal "Implement user authentication"
   brief add choice "Use JWT tokens for sessions"
   brief add todo "Write unit tests"
-  brief add cmd "make test"
-  echo "error output" | brief add error --from-stdin "Build failure"`,
+  brief add cmd "make test"`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: runAdd,
 }
@@ -76,7 +76,7 @@ func addEvent(eventType, text string) error {
 	// Validate type against allowlist
 	if !isValidType(eventType) {
 		return &UserError{
-			Msg: fmt.Sprintf("invalid type: %s (valid types: goal, choice, todo, cmd, error, link, issue, note, fix)", eventType),
+			Msg: fmt.Sprintf("invalid type: %s (valid types: goal, choice, todo, cmd, note, fix)", eventType),
 		}
 	}
 
@@ -142,9 +142,6 @@ func isValidType(t string) bool {
 		"choice": true,
 		"todo":   true,
 		"cmd":    true,
-		"error":  true,
-		"link":   true,
-		"issue":  true,
 		"note":   true,
 		"fix":    true,
 	}
