@@ -425,8 +425,8 @@ func formatTimestamp(ts int64) string {
 func sortItemsForWideFormat(items []Item) {
 	typePriority := map[string]int{
 		"todo":   0,
-		"choice": 1,
-		"cmd":    2,
+		"cmd":    1,
+		"choice": 2,
 		"note":   3,
 	}
 

@@ -18,7 +18,7 @@ func (m Model) renderWideFormat() string {
 	var out strings.Builder
 
 	// Group items by type in priority order
-	typeOrder := []string{"todo", "choice", "cmd", "note"}
+	typeOrder := []string{"todo", "cmd", "choice", "note"}
 	grouped := make(map[string][]Item)
 
 	for _, item := range m.items {
