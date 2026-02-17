@@ -24,10 +24,7 @@ type Brief struct {
 func RenderBrief(b Brief) string {
 	var out strings.Builder
 
-	// Compact header with counts
-	eventsByType := groupEventsByType(b.Events)
-	counts := buildCountsString(eventsByType, b.CurrentGoal)
-
+	// Minimal header (no counts)
 	stateInfo := "clean"
 	if b.GitState.DirtyFileCount > 0 {
 		stateInfo = fmt.Sprintf("%d changed", b.GitState.DirtyFileCount)
@@ -41,71 +38,47 @@ func RenderBrief(b Brief) string {
 		}
 	}
 
-	out.WriteString(fmt.Sprintf("%s · %s · %s · %s%s\n\n",
+	out.WriteString(fmt.Sprintf("%s · %s · %s · %s\n",
 		b.Branch,
 		b.LastUpdated.Format("15:04"),
 		lastCommit,
 		stateInfo,
-		counts,
 	))
 
-	// Goal section (single goal per branch)
+	// Goal inline (single line)
 	if b.CurrentGoal != nil {
-		out.WriteString("Goal\n")
 		text := truncateLine(b.CurrentGoal.Text, 160)
-		out.WriteString(fmt.Sprintf("• %s\n\n", text))
+		out.WriteString(fmt.Sprintf("Goal: %s\n", text))
 	}
 
-	// Decisions section (newest first, limit 7)
+	out.WriteString("\n")
+
+	eventsByType := groupEventsByType(b.Events)
+
+	// Core sections only: Decisions, Todos, Commands, Notes
+
+	// Decisions (newest first, limit 7)
 	if decisions, ok := eventsByType["decision"]; ok && len(decisions) > 0 {
 		out.WriteString("Decisions\n")
 		writeSection(&out, decisions, true, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Known issues / errors section (newest first, limit 7, multi-line)
-	if errors, ok := eventsByType["error"]; ok && len(errors) > 0 {
-		out.WriteString("Known issues\n")
-		writeSection(&out, errors, true, 7, true)
-		out.WriteString("\n")
-	}
-
-	// Fixes section (newest first, limit 7)
-	if fixes, ok := eventsByType["fix"]; ok && len(fixes) > 0 {
-		out.WriteString("Fixes\n")
-		writeSection(&out, fixes, true, 7, false)
-		out.WriteString("\n")
-	}
-
-	// Next steps / todos section (oldest first for natural checklist order, limit 7)
+	// Todos (oldest first for checklist order, limit 7)
 	if todos, ok := eventsByType["todo"]; ok && len(todos) > 0 {
-		out.WriteString("Next steps\n")
+		out.WriteString("Todos\n")
 		writeSection(&out, todos, false, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Commands section (newest first, limit 7)
+	// Commands (newest first, limit 7)
 	if cmds, ok := eventsByType["cmd"]; ok && len(cmds) > 0 {
 		out.WriteString("Commands\n")
 		writeSection(&out, cmds, true, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Links section (newest first, limit 7)
-	if links, ok := eventsByType["link"]; ok && len(links) > 0 {
-		out.WriteString("Links\n")
-		writeSection(&out, links, true, 7, false)
-		out.WriteString("\n")
-	}
-
-	// Issues section (newest first, limit 7)
-	if issues, ok := eventsByType["issue"]; ok && len(issues) > 0 {
-		out.WriteString("Issues\n")
-		writeSection(&out, issues, true, 7, false)
-		out.WriteString("\n")
-	}
-
-	// Notes section (newest first, limit 7)
+	// Notes (newest first, limit 7)
 	if notes, ok := eventsByType["note"]; ok && len(notes) > 0 {
 		out.WriteString("Notes\n")
 		writeSection(&out, notes, true, 7, false)
