@@ -173,7 +173,12 @@ func writeSection(out *strings.Builder, events []store.Event, newestFirst bool, 
 	for _, event := range sorted {
 		bullet := "•"
 		if event.Type == "todo" {
-			bullet = "☐"
+			// Check completion state
+			if event.CompletedAt != nil && *event.CompletedAt > 0 {
+				bullet = "✓"
+			} else {
+				bullet = "☐"
+			}
 		} else if event.Type == "cmd" {
 			bullet = "$"
 		}
