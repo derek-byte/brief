@@ -46,7 +46,10 @@ cd ~/my-project
 # Set your goal (one per branch, updates not appends)
 brief goal "Add user authentication"
 
-# Add notes using shorthand commands
+# Quick notes using catch-all command (creates a note)
+brief "Remember to test edge cases"
+
+# Or use typed shorthand commands
 brief decision "Use JWT tokens"
 brief todo "Write unit tests"
 brief cmd "make test"
@@ -84,6 +87,7 @@ brief stashes             # List all saved work by branch
 
 ### Notes (Shorthand)
 ```bash
+brief "<text>"            # Catch-all: creates a note (no subcommand needed)
 brief decision "<text>"   # Add a decision
 brief todo "<text>"       # Add a todo
 brief cmd "<text>"        # Add a command
@@ -98,7 +102,6 @@ brief note "<text>"       # Add a general note
 ```bash
 brief add <type> "<text>"              # Add any event type
 brief add error --from-stdin "<desc>"  # Capture from stdin
-brief status                           # Show event counts
 brief rehydrate                        # Display branch brief
 brief rehydrate --limit 100            # Limit events fetched
 ```
