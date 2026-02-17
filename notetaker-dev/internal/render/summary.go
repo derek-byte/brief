@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
+	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
 )
 
@@ -146,7 +147,7 @@ func renderTwoColumnGrid(todos, choices []store.Event) string {
 
 		out.WriteString(padRight(todoContent, colWidth))
 		out.WriteString("  ")
-		out.WriteString(choiceContent)
+		out.WriteString(padRight(choiceContent, colWidth))
 		out.WriteString("\n")
 	}
 
@@ -346,12 +347,13 @@ func formatInlineList(events []store.Event, eventType string, maxItems int) []st
 	return items
 }
 
-// padRight pads string to width with spaces
+// padRight pads string to width with spaces, accounting for display width of wide characters
 func padRight(s string, width int) string {
-	if len(s) >= width {
+	displayWidth := runewidth.StringWidth(s)
+	if displayWidth >= width {
 		return s
 	}
-	return s + strings.Repeat(" ", width-len(s))
+	return s + strings.Repeat(" ", width-displayWidth)
 }
 
 // max returns the maximum of two integers
