@@ -39,16 +39,6 @@ var fixCmd = &cobra.Command{
 	},
 }
 
-var goalCmd = &cobra.Command{
-	Use:   "goal <text...>",
-	Short: "Add a goal (shorthand for 'add goal')",
-	Args:  cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		text := strings.Join(args, " ")
-		return addEvent("goal", text)
-	},
-}
-
 var decisionCmd = &cobra.Command{
 	Use:   "decision <text...>",
 	Short: "Add a decision (shorthand for 'add decision')",
@@ -101,10 +91,10 @@ var noteCmd = &cobra.Command{
 
 func init() {
 	// Register all shorthand aliases
+	// Note: 'goal' has a dedicated command in goal.go (single goal per branch)
 	rootCmd.AddCommand(todoCmd)
 	rootCmd.AddCommand(cmdCmd)
 	rootCmd.AddCommand(fixCmd)
-	rootCmd.AddCommand(goalCmd)
 	rootCmd.AddCommand(decisionCmd)
 	rootCmd.AddCommand(errorCmd)
 	rootCmd.AddCommand(linkCmd)

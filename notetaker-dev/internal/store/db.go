@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"path/filepath"
+	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -208,4 +210,69 @@ LIMIT ?`
 	}
 
 	return events, nil
+}
+
+// GetGoal retrieves the current goal for a branch (single goal per branch)
+func GetGoal(db *sql.DB, repoID, branch string) (*Event, error) {
+	query := `
+SELECT id, repo_id, branch, type, text, created_at, meta_json
+FROM events
+WHERE repo_id = ? AND branch = ? AND type = 'goal'
+ORDER BY created_at DESC
+LIMIT 1`
+
+	var event Event
+	err := db.QueryRow(query, repoID, branch).Scan(
+		&event.ID,
+		&event.RepoID,
+		&event.Branch,
+		&event.Type,
+		&event.Text,
+		&event.CreatedAt,
+		&event.MetaJSON,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No goal exists
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get goal: %w", err)
+	}
+
+	return &event, nil
+}
+
+// UpsertGoal sets or updates the goal for a branch
+// Only one goal per branch - updates existing or inserts new
+func UpsertGoal(db *sql.DB, repoID, branch, text string) error {
+	// Check if goal exists
+	existing, err := GetGoal(db, repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	if existing != nil {
+		// Update existing goal
+		query := `UPDATE events SET text = ?, created_at = ? WHERE id = ?`
+		_, err := db.Exec(query, text, time.Now().Unix(), existing.ID)
+		if err != nil {
+			return fmt.Errorf("failed to update goal: %w", err)
+		}
+	} else {
+		// Insert new goal
+		event := Event{
+			ID:        uuid.New().String(),
+			RepoID:    repoID,
+			Branch:    branch,
+			Type:      "goal",
+			Text:      text,
+			CreatedAt: time.Now().Unix(),
+			MetaJSON:  "{}",
+		}
+		if err := AddEvent(db, event); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

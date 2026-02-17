@@ -16,6 +16,7 @@ type Brief struct {
 	LastUpdated time.Time
 	GitState    git.GitState
 	Events      []store.Event
+	CurrentGoal *store.Event // Single goal per branch (nil if no goal)
 }
 
 // RenderBrief formats a branch brief for terminal output
@@ -27,14 +28,14 @@ func RenderBrief(b Brief) string {
 	out.WriteString(fmt.Sprintf("Branch: %s\n", b.Branch))
 	out.WriteString(fmt.Sprintf("Last updated: %s\n\n", b.LastUpdated.Format("2006-01-02 15:04")))
 
-	// Group events by type
+	// Group events by type (excluding goal - handled separately)
 	eventsByType := groupEventsByType(b.Events)
 
-	// Goal section (newest first, limit 7)
-	if goals, ok := eventsByType["goal"]; ok && len(goals) > 0 {
+	// Goal section (single goal per branch)
+	if b.CurrentGoal != nil {
 		out.WriteString("Goal\n")
-		writeSection(&out, goals, true, 7)
-		out.WriteString("\n")
+		text := truncateLine(b.CurrentGoal.Text, 160)
+		out.WriteString(fmt.Sprintf("• %s\n\n", text))
 	}
 
 	// State section

@@ -53,6 +53,12 @@ func runRehydrate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get current goal separately (single goal per branch)
+	currentGoal, err := store.GetGoal(db, repoID, branch)
+	if err != nil {
+		return err
+	}
+
 	// Get git state
 	gitState := git.GetGitState(repoRoot)
 
@@ -70,6 +76,7 @@ func runRehydrate(cmd *cobra.Command, args []string) error {
 		LastUpdated: lastUpdated,
 		GitState:    gitState,
 		Events:      events,
+		CurrentGoal: currentGoal,
 	}
 
 	// Render and display
