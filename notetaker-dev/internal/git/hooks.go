@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -12,9 +13,31 @@ const (
 	hookEndMarker   = "# <<< branchbrief auto-context <<<"
 )
 
+// getHooksDir returns the hooks directory, respecting core.hooksPath if set
+func getHooksDir(repoRoot string) (string, error) {
+	// Check if core.hooksPath is configured
+	cmd := exec.Command("git", "-C", repoRoot, "config", "--get", "core.hooksPath")
+	if out, err := cmd.Output(); err == nil && len(out) > 0 {
+		hooksPath := strings.TrimSpace(string(out))
+
+		// If relative path, make it relative to repo root
+		if !filepath.IsAbs(hooksPath) {
+			return filepath.Join(repoRoot, hooksPath), nil
+		}
+		return hooksPath, nil
+	}
+
+	// Default to .git/hooks
+	return filepath.Join(repoRoot, ".git", "hooks"), nil
+}
+
 // InstallHook installs a post-checkout hook that runs brief on branch switch
 func InstallHook(repoRoot string, fullMode bool) error {
-	hookPath := filepath.Join(repoRoot, ".git", "hooks", "post-checkout")
+	hooksDir, err := getHooksDir(repoRoot)
+	if err != nil {
+		return fmt.Errorf("failed to get hooks directory: %w", err)
+	}
+	hookPath := filepath.Join(hooksDir, "post-checkout")
 
 	// Read existing hook if it exists
 	existingContent := ""
@@ -58,7 +81,11 @@ fi
 
 // UninstallHook removes the branchbrief block from post-checkout hook
 func UninstallHook(repoRoot string) error {
-	hookPath := filepath.Join(repoRoot, ".git", "hooks", "post-checkout")
+	hooksDir, err := getHooksDir(repoRoot)
+	if err != nil {
+		return fmt.Errorf("failed to get hooks directory: %w", err)
+	}
+	hookPath := filepath.Join(hooksDir, "post-checkout")
 
 	// Read existing hook
 	data, err := os.ReadFile(hookPath)
