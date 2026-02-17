@@ -13,8 +13,9 @@ import (
 )
 
 var restoreCmd = &cobra.Command{
-	Use:   "restore",
-	Short: "Restore saved work for this branch",
+	Use:     "restore",
+	Short:   "Restore saved work for this branch",
+	GroupID: "branch",
 	Long: `Restore (apply) the most recent stash saved for this branch.
 
 Uses 'git stash apply' so the stash is preserved. If you want to delete

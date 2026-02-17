@@ -21,7 +21,7 @@ var rootCmd = &cobra.Command{
 	Long: `BranchBrief is a local-first CLI that stores private, branch-scoped
 development notes and prints a concise rehydration brief so you can
 resume work in ~30 seconds without rereading Slack/LLM chats.`,
-	Version: "0.1.0",
+	Version: "1.0.0",
 	Args:    cobra.ArbitraryArgs,
 	RunE:    runBrief,
 }
@@ -29,6 +29,16 @@ resume work in ~30 seconds without rereading Slack/LLM chats.`,
 func init() {
 	// Hide completion command from help (still works, just not shown)
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+
+	// Define command groups
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "branch",
+		Title: "Branch Context Commands:",
+	})
+	rootCmd.AddGroup(&cobra.Group{
+		ID:    "global",
+		Title: "Repository Commands:",
+	})
 }
 
 // Execute runs the root command

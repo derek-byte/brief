@@ -14,8 +14,9 @@ var limit int
 var viewMode string
 
 var rehydrateCmd = &cobra.Command{
-	Use:   "rehydrate",
-	Short: "Display a concise brief of the current branch context",
+	Use:     "rehydrate",
+	Short:   "Display a concise brief of the current branch context",
+	GroupID: "branch",
 	Long: `Print a structured summary of your branch's development context,
 including goals, choices, todos, and git state. Designed to get
 you oriented in under 60 seconds.`,

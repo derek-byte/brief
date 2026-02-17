@@ -15,8 +15,9 @@ import (
 var editGoal bool
 
 var goalCmd = &cobra.Command{
-	Use:   "goal [text...]",
-	Short: "Set or view the current goal for this branch",
+	Use:     "goal [text...]",
+	Short:   "Set or view the current goal for this branch",
+	GroupID: "branch",
 	Long: `Set or update the single goal for this branch.
 Unlike other event types, there is only one goal per branch.
 Setting a new goal replaces the previous one.

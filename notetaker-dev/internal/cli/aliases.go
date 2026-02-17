@@ -10,8 +10,9 @@ import (
 // These provide ultra-low-friction alternatives to 'brief add <type>'
 
 var todoCmd = &cobra.Command{
-	Use:   "todo <text...>",
-	Short: "Add a todo (shorthand for 'add todo')",
+	Use:     "todo <text...>",
+	Short:   "Add a todo (shorthand for 'add todo')",
+	GroupID: "branch",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
@@ -20,8 +21,9 @@ var todoCmd = &cobra.Command{
 }
 
 var cmdCmd = &cobra.Command{
-	Use:   "cmd <text...>",
-	Short: "Add a command (shorthand for 'add cmd')",
+	Use:     "cmd <text...>",
+	Short:   "Add a command (shorthand for 'add cmd')",
+	GroupID: "branch",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
@@ -30,8 +32,9 @@ var cmdCmd = &cobra.Command{
 }
 
 var fixCmd = &cobra.Command{
-	Use:    "fix <text...>",
-	Short:  "Add a fix note (shorthand for 'add fix')",
+	Use:      "fix <text...>",
+	Short:    "Add a fix note (shorthand for 'add fix')",
+	GroupID: "branch",
 	Hidden: true, // Hidden - rarely used
 	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,8 +44,9 @@ var fixCmd = &cobra.Command{
 }
 
 var decisionCmd = &cobra.Command{
-	Use:    "decision <text...>",
-	Short:  "Add a choice (alias for backwards compatibility, use 'choice' instead)",
+	Use:      "decision <text...>",
+	Short:    "Add a choice (alias for backwards compatibility, use 'choice' instead)",
+	GroupID: "branch",
 	Hidden: true, // Hidden - use 'choice' instead
 	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,8 +56,9 @@ var decisionCmd = &cobra.Command{
 }
 
 var choiceCmd = &cobra.Command{
-	Use:   "choice <text...>",
-	Short: "Add a choice (shorthand for 'add choice')",
+	Use:     "choice <text...>",
+	Short:   "Add a choice (shorthand for 'add choice')",
+	GroupID: "branch",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
@@ -62,8 +67,9 @@ var choiceCmd = &cobra.Command{
 }
 
 var noteCmd = &cobra.Command{
-	Use:    "note <text...>",
-	Short:  "Add a general note (shorthand for 'add note')",
+	Use:      "note <text...>",
+	Short:    "Add a general note (shorthand for 'add note')",
+	GroupID: "branch",
 	Hidden: true, // Hidden - use catch-all instead
 	Args:   cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

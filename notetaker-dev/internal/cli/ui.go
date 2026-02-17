@@ -15,8 +15,9 @@ import (
 )
 
 var uiCmd = &cobra.Command{
-	Use:   "ui",
-	Short: "Launch interactive TUI for browsing and managing branch context",
+	Use:     "ui",
+	Short:   "Launch interactive TUI for browsing and managing branch context",
+	GroupID: "branch",
 	Long: `Launch an interactive terminal UI for viewing and interacting with
 branch notes. Navigate with j/k, toggle views with v, quit with q.`,
 	RunE: runUI,

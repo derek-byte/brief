@@ -465,3 +465,12 @@ func UpdateEventText(db *sql.DB, eventID, newText string) error {
 	}
 	return nil
 }
+
+// ClearBranch deletes all events for a specific branch
+func ClearBranch(db *sql.DB, repoID, branch string) error {
+	_, err := db.Exec(`DELETE FROM events WHERE repo_id = ? AND branch = ?`, repoID, branch)
+	if err != nil {
+		return fmt.Errorf("failed to clear branch: %w", err)
+	}
+	return nil
+}

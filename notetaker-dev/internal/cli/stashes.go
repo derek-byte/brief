@@ -11,8 +11,9 @@ import (
 )
 
 var stashesCmd = &cobra.Command{
-	Use:   "stashes",
-	Short: "List all saved work for this branch",
+	Use:     "stashes",
+	Short:   "List all saved work for this branch",
+	GroupID: "branch",
 	Long: `Show all saved stashes for the current branch.
 
 Use this to see what work-in-progress you've saved on this branch.

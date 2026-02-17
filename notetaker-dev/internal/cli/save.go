@@ -13,8 +13,9 @@ import (
 )
 
 var saveCmd = &cobra.Command{
-	Use:   "save [message]",
-	Short: "Save (stash) your current work for this branch",
+	Use:     "save [message]",
+	Short:   "Save (stash) your current work for this branch",
+	GroupID: "branch",
 	Long: `Stash your uncommitted changes and associate them with the current branch.
 Later, use 'brief restore' to restore your work on this branch.
 
