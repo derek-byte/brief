@@ -171,3 +171,41 @@ WHERE repo_id = ? AND branch = ?`, repoID, branch).Scan(&lastUpdated)
 
 	return summary, nil
 }
+
+// GetEvents fetches all events for a repo/branch with a limit
+// Returns events in descending order by created_at (newest first)
+// Caller should group and sort by type as needed
+func GetEvents(db *sql.DB, repoID, branch string, limit int) ([]Event, error) {
+	query := `
+SELECT id, repo_id, branch, type, text, created_at, meta_json
+FROM events
+WHERE repo_id = ? AND branch = ?
+ORDER BY created_at DESC
+LIMIT ?`
+
+	rows, err := db.Query(query, repoID, branch, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []Event
+	for rows.Next() {
+		var event Event
+		err := rows.Scan(
+			&event.ID,
+			&event.RepoID,
+			&event.Branch,
+			&event.Type,
+			&event.Text,
+			&event.CreatedAt,
+			&event.MetaJSON,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
+}
