@@ -88,6 +88,12 @@ brief stashes             # List all saved work by branch
 ### Notes (Shorthand)
 ```bash
 brief "<text>"            # Catch-all: creates a note (no subcommand needed)
+brief "todo: <text>"      # Auto-detected as todo (prefix stripped)
+brief "cmd: <text>"       # Auto-detected as cmd (prefix stripped)
+brief "decision: <text>"  # Auto-detected as decision (prefix stripped)
+brief "note: <text>"      # Auto-detected as note (prefix stripped)
+
+# Or use explicit type commands
 brief decision "<text>"   # Add a decision
 brief todo "<text>"       # Add a todo
 brief cmd "<text>"        # Add a command
@@ -97,6 +103,8 @@ brief link "<text>"       # Add a link
 brief issue "<text>"      # Add an issue reference
 brief note "<text>"       # Add a general note
 ```
+
+**Smart Prefix Detection**: The catch-all command automatically detects event types from prefixes like "todo:", "cmd:", "decision:", "note:", etc. The prefix is stripped from the final text.
 
 ### View Modes
 ```bash
