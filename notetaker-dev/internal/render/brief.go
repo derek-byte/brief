@@ -55,19 +55,8 @@ func RenderBrief(b Brief) string {
 
 	eventsByType := groupEventsByType(b.Events)
 
-	// Core sections only: Choices, Todos, Commands, Notes
+	// Core sections in order: Todos, Commands, Choices, Notes
 	// All sorted oldest-first for chronological flow
-
-	// Choices (oldest first, limit 7) - includes old "decision" entries
-	choices := eventsByType["choice"]
-	if oldDecisions, ok := eventsByType["decision"]; ok {
-		choices = append(choices, oldDecisions...)
-	}
-	if len(choices) > 0 {
-		out.WriteString("Choices\n")
-		writeSection(&out, choices, false, 7, false)
-		out.WriteString("\n")
-	}
 
 	// Todos (oldest first, limit 7)
 	if todos, ok := eventsByType["todo"]; ok && len(todos) > 0 {
@@ -80,6 +69,17 @@ func RenderBrief(b Brief) string {
 	if cmds, ok := eventsByType["cmd"]; ok && len(cmds) > 0 {
 		out.WriteString("Commands\n")
 		writeSection(&out, cmds, false, 7, false)
+		out.WriteString("\n")
+	}
+
+	// Choices (oldest first, limit 7) - includes old "decision" entries
+	choices := eventsByType["choice"]
+	if oldDecisions, ok := eventsByType["decision"]; ok {
+		choices = append(choices, oldDecisions...)
+	}
+	if len(choices) > 0 {
+		out.WriteString("Choices\n")
+		writeSection(&out, choices, false, 7, false)
 		out.WriteString("\n")
 	}
 
