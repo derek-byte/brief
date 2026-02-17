@@ -117,3 +117,57 @@ VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	return nil
 }
+
+// StatusSummary contains event counts and metadata for a branch
+type StatusSummary struct {
+	Branch       string
+	LastUpdated  int64
+	CountsByType map[string]int
+}
+
+// GetStatus returns event counts and last updated time for a repo/branch
+func GetStatus(db *sql.DB, repoID, branch string) (StatusSummary, error) {
+	summary := StatusSummary{
+		Branch:      branch,
+		CountsByType: make(map[string]int),
+	}
+
+	// Get counts by type
+	rows, err := db.Query(`
+SELECT type, COUNT(*) as count
+FROM events
+WHERE repo_id = ? AND branch = ?
+GROUP BY type
+ORDER BY type`, repoID, branch)
+
+	if err != nil {
+		return summary, fmt.Errorf("failed to query event counts: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var eventType string
+		var count int
+		if err := rows.Scan(&eventType, &count); err != nil {
+			return summary, fmt.Errorf("failed to scan row: %w", err)
+		}
+		summary.CountsByType[eventType] = count
+	}
+
+	// Get last updated timestamp
+	var lastUpdated sql.NullInt64
+	err = db.QueryRow(`
+SELECT MAX(created_at)
+FROM events
+WHERE repo_id = ? AND branch = ?`, repoID, branch).Scan(&lastUpdated)
+
+	if err != nil && err != sql.ErrNoRows {
+		return summary, fmt.Errorf("failed to query last updated: %w", err)
+	}
+
+	if lastUpdated.Valid {
+		summary.LastUpdated = lastUpdated.Int64
+	}
+
+	return summary, nil
+}
