@@ -85,6 +85,22 @@ brief restore             # Restore work for this branch
 brief stashes             # List all saved work by branch
 ```
 
+### Interactive UI
+```bash
+brief ui                  # Launch interactive TUI for browsing/managing notes
+```
+
+**Navigation:**
+- `j`/`k` or `↑`/`↓`: Move selection
+- `g`/`G`: Jump to top/bottom
+- `v`: Toggle between wide (grouped) and compact (continuous) views
+- `?`: Show/hide help
+- `q`: Quit
+
+The TUI provides two viewing formats:
+- **Wide**: Events grouped by type with spacing (todo, decision, cmd, error, note)
+- **Compact**: Continuous timeline list with shortened type labels
+
 ### Notes (Shorthand)
 ```bash
 brief "<text>"            # Catch-all: creates a note (no subcommand needed)
