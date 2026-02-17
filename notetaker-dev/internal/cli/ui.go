@@ -55,8 +55,8 @@ func runUI(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Initialize TUI model
-	model := tui.NewModel(events, branch)
+	// Initialize TUI model with DB connection for mutations
+	model := tui.NewModel(events, branch, repoID, repoRoot, db)
 
 	// Run Bubble Tea program
 	p := tea.NewProgram(model, tea.WithAltScreen())

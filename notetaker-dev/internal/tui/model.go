@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,18 +20,31 @@ const (
 	FormatCompact                    // Format B: continuous with compact labels
 )
 
+// Mode determines the current UI mode
+type Mode int
+
+const (
+	ModeNormal Mode = iota // Normal list navigation
+	ModeDetail             // Detail view for a single item
+)
+
 // Model is the Bubble Tea model for the TUI
 type Model struct {
 	items      []Item
-	goal       *Item // Single goal displayed as header
+	goal       *Item  // Single goal displayed as header
 	cursor     int
 	format     ViewFormat
+	mode       Mode
 	showTime   bool
 	showHelp   bool
 	width      int
 	height     int
 	branch     string
+	repoID     string
+	repoRoot   string
+	db         *sql.DB
 	quitting   bool
+	detailItem *Item // Item shown in detail view
 }
 
 // Item represents a displayable event in the list
@@ -43,7 +57,7 @@ type Item struct {
 }
 
 // NewModel creates a new TUI model with the given events
-func NewModel(events []store.Event, branch string) Model {
+func NewModel(events []store.Event, branch, repoID, repoRoot string, db *sql.DB) Model {
 	items, goal := buildItems(events)
 
 	// Sort items to match wide format display order initially
@@ -55,9 +69,13 @@ func NewModel(events []store.Event, branch string) Model {
 		goal:     goal,
 		cursor:   0,
 		format:   FormatWide,
+		mode:     ModeNormal,
 		showTime: false, // Off by default, but toggleable
 		showHelp: false,
 		branch:   branch,
+		repoID:   repoID,
+		repoRoot: repoRoot,
+		db:       db,
 	}
 }
 
@@ -245,7 +263,11 @@ func buildItems(events []store.Event) ([]Item, *Item) {
 		// Add prefix based on type
 		switch e.Type {
 		case "todo":
-			item.Prefix = "☐ "
+			if e.CompletedAt != nil && *e.CompletedAt > 0 {
+				item.Prefix = "✓ " // Completed
+			} else {
+				item.Prefix = "☐ " // Not completed
+			}
 		case "cmd":
 			item.Prefix = "$ "
 		}

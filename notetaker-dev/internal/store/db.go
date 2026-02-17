@@ -12,13 +12,16 @@ import (
 
 // Event represents a branch-scoped note entry
 type Event struct {
-	ID        string
-	RepoID    string
-	Branch    string
-	Type      string
-	Text      string
-	CreatedAt int64
-	MetaJSON  string
+	ID          string
+	RepoID      string
+	Branch      string
+	Type        string
+	Text        string
+	CreatedAt   int64
+	MetaJSON    string
+	CompletedAt *int64 // For todos: completion timestamp
+	DeletedAt   *int64 // Soft delete timestamp
+	UpdatedAt   *int64 // Last edit timestamp
 }
 
 // OpenDB opens or creates the SQLite database at the app data directory
@@ -92,6 +95,39 @@ ON events(repo_id, branch, created_at DESC);
 	_, err := db.Exec(schema)
 	if err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
+	}
+
+	// Add new columns if they don't exist (safe migrations)
+	if err := addColumnIfNotExists(db, "events", "completed_at", "INTEGER"); err != nil {
+		return err
+	}
+	if err := addColumnIfNotExists(db, "events", "deleted_at", "INTEGER"); err != nil {
+		return err
+	}
+	if err := addColumnIfNotExists(db, "events", "updated_at", "INTEGER"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addColumnIfNotExists safely adds a column if it doesn't exist
+func addColumnIfNotExists(db *sql.DB, table, column, colType string) error {
+	// Check if column exists
+	var count int
+	query := `SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`
+	err := db.QueryRow(query, table, column).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check column %s: %w", column, err)
+	}
+
+	if count == 0 {
+		// Column doesn't exist, add it
+		alterSQL := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, colType)
+		_, err := db.Exec(alterSQL)
+		if err != nil {
+			return fmt.Errorf("failed to add column %s: %w", column, err)
+		}
 	}
 
 	return nil
@@ -179,9 +215,9 @@ WHERE repo_id = ? AND branch = ?`, repoID, branch).Scan(&lastUpdated)
 // Caller should group and sort by type as needed
 func GetEvents(db *sql.DB, repoID, branch string, limit int) ([]Event, error) {
 	query := `
-SELECT id, repo_id, branch, type, text, created_at, meta_json
+SELECT id, repo_id, branch, type, text, created_at, meta_json, completed_at, deleted_at, updated_at
 FROM events
-WHERE repo_id = ? AND branch = ?
+WHERE repo_id = ? AND branch = ? AND (deleted_at IS NULL OR deleted_at = 0)
 ORDER BY created_at DESC
 LIMIT ?`
 
@@ -194,6 +230,7 @@ LIMIT ?`
 	var events []Event
 	for rows.Next() {
 		var event Event
+		var completedAt, deletedAt, updatedAt sql.NullInt64
 		err := rows.Scan(
 			&event.ID,
 			&event.RepoID,
@@ -202,10 +239,25 @@ LIMIT ?`
 			&event.Text,
 			&event.CreatedAt,
 			&event.MetaJSON,
+			&completedAt,
+			&deletedAt,
+			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan event: %w", err)
 		}
+
+		// Store nullable timestamps
+		if completedAt.Valid {
+			event.CompletedAt = &completedAt.Int64
+		}
+		if deletedAt.Valid {
+			event.DeletedAt = &deletedAt.Int64
+		}
+		if updatedAt.Valid {
+			event.UpdatedAt = &updatedAt.Int64
+		}
+
 		events = append(events, event)
 	}
 
@@ -359,4 +411,48 @@ ORDER BY created_at DESC`
 	}
 
 	return stashes, nil
+}
+
+// ToggleTodoCompletion toggles the completion state of a todo
+func ToggleTodoCompletion(db *sql.DB, eventID string) error {
+	// Get current completion state
+	var completedAt sql.NullInt64
+	err := db.QueryRow(`SELECT completed_at FROM events WHERE id = ?`, eventID).Scan(&completedAt)
+	if err != nil {
+		return fmt.Errorf("failed to get completion state: %w", err)
+	}
+
+	// Toggle: if completed, set to NULL; if not completed, set to now
+	var newValue interface{}
+	if completedAt.Valid {
+		newValue = nil
+	} else {
+		newValue = time.Now().Unix()
+	}
+
+	_, err = db.Exec(`UPDATE events SET completed_at = ? WHERE id = ?`, newValue, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to toggle completion: %w", err)
+	}
+
+	return nil
+}
+
+// SoftDeleteEvent marks an event as deleted
+func SoftDeleteEvent(db *sql.DB, eventID string) error {
+	_, err := db.Exec(`UPDATE events SET deleted_at = ? WHERE id = ?`, time.Now().Unix(), eventID)
+	if err != nil {
+		return fmt.Errorf("failed to soft delete: %w", err)
+	}
+	return nil
+}
+
+// UpdateEventText updates the text of an event and sets updated_at
+func UpdateEventText(db *sql.DB, eventID, newText string) error {
+	_, err := db.Exec(`UPDATE events SET text = ?, updated_at = ? WHERE id = ?`,
+		newText, time.Now().Unix(), eventID)
+	if err != nil {
+		return fmt.Errorf("failed to update text: %w", err)
+	}
+	return nil
 }
