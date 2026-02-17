@@ -11,6 +11,7 @@ import (
 )
 
 var limit int
+var viewMode string
 
 var rehydrateCmd = &cobra.Command{
 	Use:   "rehydrate",
@@ -23,6 +24,7 @@ you oriented in under 60 seconds.`,
 
 func init() {
 	rehydrateCmd.Flags().IntVar(&limit, "limit", 200, "Maximum number of events to fetch")
+	rehydrateCmd.Flags().StringVar(&viewMode, "view", "structured", "View mode: structured or timeline")
 	rootCmd.AddCommand(rehydrateCmd)
 }
 
@@ -79,8 +81,17 @@ func runRehydrate(cmd *cobra.Command, args []string) error {
 		CurrentGoal: currentGoal,
 	}
 
-	// Render and display
-	output := render.RenderBrief(brief)
+	// Render based on view mode
+	var output string
+	switch viewMode {
+	case "timeline":
+		output = render.RenderTimeline(brief)
+	case "structured":
+		output = render.RenderBrief(brief)
+	default:
+		return &UserError{Msg: fmt.Sprintf("invalid view mode: %s (must be 'structured' or 'timeline')", viewMode)}
+	}
+
 	fmt.Print(output)
 
 	return nil

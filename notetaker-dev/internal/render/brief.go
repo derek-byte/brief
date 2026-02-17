@@ -56,32 +56,33 @@ func RenderBrief(b Brief) string {
 	eventsByType := groupEventsByType(b.Events)
 
 	// Core sections only: Decisions, Todos, Commands, Notes
+	// All sorted oldest-first for chronological flow
 
-	// Decisions (newest first, limit 7)
+	// Decisions (oldest first, limit 7)
 	if decisions, ok := eventsByType["decision"]; ok && len(decisions) > 0 {
 		out.WriteString("Decisions\n")
-		writeSection(&out, decisions, true, 7, false)
+		writeSection(&out, decisions, false, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Todos (oldest first for checklist order, limit 7)
+	// Todos (oldest first, limit 7)
 	if todos, ok := eventsByType["todo"]; ok && len(todos) > 0 {
 		out.WriteString("Todos\n")
 		writeSection(&out, todos, false, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Commands (newest first, limit 7)
+	// Commands (oldest first, limit 7)
 	if cmds, ok := eventsByType["cmd"]; ok && len(cmds) > 0 {
 		out.WriteString("Commands\n")
-		writeSection(&out, cmds, true, 7, false)
+		writeSection(&out, cmds, false, 7, false)
 		out.WriteString("\n")
 	}
 
-	// Notes (newest first, limit 7)
+	// Notes (oldest first, limit 7)
 	if notes, ok := eventsByType["note"]; ok && len(notes) > 0 {
 		out.WriteString("Notes\n")
-		writeSection(&out, notes, true, 7, false)
+		writeSection(&out, notes, false, 7, false)
 		out.WriteString("\n")
 	}
 
@@ -210,4 +211,79 @@ func truncateLine(text string, maxLen int) string {
 		return text
 	}
 	return text[:maxLen-3] + "..."
+}
+
+// RenderTimeline formats events as a chronological activity log
+// Best for "what happened?" - shows all events with timestamps
+func RenderTimeline(b Brief) string {
+	var out strings.Builder
+
+	// Minimal header (same as structured mode)
+	stateInfo := "clean"
+	if b.GitState.DirtyFileCount > 0 {
+		stateInfo = fmt.Sprintf("%d changed", b.GitState.DirtyFileCount)
+	}
+
+	lastCommit := "no commits"
+	if b.GitState.LastCommit != "" {
+		parts := strings.SplitN(b.GitState.LastCommit, " ", 2)
+		if len(parts) > 0 {
+			lastCommit = parts[0]
+		}
+	}
+
+	out.WriteString(fmt.Sprintf("%s · %s · %s · %s\n\n",
+		b.Branch,
+		b.LastUpdated.Format("15:04"),
+		lastCommit,
+		stateInfo,
+	))
+
+	// Build combined list of all events including goal
+	type timelineEntry struct {
+		timestamp int64
+		eventType string
+		text      string
+	}
+
+	var entries []timelineEntry
+
+	// Add current goal if exists
+	if b.CurrentGoal != nil {
+		entries = append(entries, timelineEntry{
+			timestamp: b.CurrentGoal.CreatedAt,
+			eventType: "goal",
+			text:      b.CurrentGoal.Text,
+		})
+	}
+
+	// Add all other events (skip goal type - handled separately as CurrentGoal)
+	for _, event := range b.Events {
+		if event.Type == "goal" {
+			continue
+		}
+		entries = append(entries, timelineEntry{
+			timestamp: event.CreatedAt,
+			eventType: event.Type,
+			text:      event.Text,
+		})
+	}
+
+	// Sort by timestamp (newest first - it's a log)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].timestamp > entries[j].timestamp
+	})
+
+	// Render each entry
+	if len(entries) == 0 {
+		out.WriteString("No activity yet for this branch\n")
+	} else {
+		for _, entry := range entries {
+			timestamp := time.Unix(entry.timestamp, 0).Format("15:04")
+			text := truncateLine(entry.text, 140)
+			out.WriteString(fmt.Sprintf("%s [%s] %s\n", timestamp, entry.eventType, text))
+		}
+	}
+
+	return out.String()
 }
