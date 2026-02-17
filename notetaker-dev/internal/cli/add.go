@@ -60,6 +60,16 @@ func runAdd(cmd *cobra.Command, args []string) error {
 // addEvent is the shared logic for adding events
 // Used by both 'add' command and shorthand aliases
 func addEvent(eventType, text string) error {
+	// Auto-detect type from text prefix (e.g., "todo: text" -> type=todo, text="text")
+	// Only applies when using catch-all command (eventType="note")
+	if eventType == "note" {
+		detectedType, cleanedText := detectTypeFromPrefix(text)
+		if detectedType != "" {
+			eventType = detectedType
+			text = cleanedText
+		}
+	}
+
 	// Validate type against allowlist
 	if !isValidType(eventType) {
 		return &UserError{
@@ -134,4 +144,23 @@ func isValidType(t string) bool {
 		"fix":      true,
 	}
 	return valid[t]
+}
+
+// detectTypeFromPrefix extracts type from text prefix (e.g., "todo: text" -> "todo", "text")
+// Returns empty string if no valid prefix detected
+func detectTypeFromPrefix(text string) (string, string) {
+	// Check for "type: text" pattern
+	parts := strings.SplitN(text, ":", 2)
+	if len(parts) != 2 {
+		return "", text
+	}
+
+	prefix := normalizeType(parts[0])
+	if !isValidType(prefix) {
+		return "", text
+	}
+
+	// Valid type prefix found - return type and cleaned text
+	cleanedText := strings.TrimSpace(parts[1])
+	return prefix, cleanedText
 }
