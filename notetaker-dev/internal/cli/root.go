@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +22,24 @@ var rootCmd = &cobra.Command{
 development notes and prints a concise rehydration brief so you can
 resume work in ~30 seconds without rereading Slack/LLM chats.`,
 	Version: "0.1.0",
+	Args:    cobra.ArbitraryArgs,
+	RunE:    runBrief,
 }
 
 // Execute runs the root command
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+// runBrief is the default handler when no subcommand is used
+// Treats "brief text" as "brief note text" (catch-all)
+func runBrief(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		// No args - show help
+		return cmd.Help()
+	}
+
+	// Catch-all: treat as note
+	text := strings.Join(args, " ")
+	return addEvent("note", text)
 }
