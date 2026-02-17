@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -10,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
+
+var fromStdin bool
 
 var addCmd = &cobra.Command{
 	Use:   "add <type> <text...>",
@@ -23,18 +27,32 @@ Examples:
   brief add goal "Implement user authentication"
   brief add decision "Use JWT tokens for sessions"
   brief add todo "Write unit tests"
-  brief add cmd "make test"`,
+  brief add cmd "make test"
+  echo "error output" | brief add error --from-stdin "Build failure"`,
 	Args: cobra.MinimumNArgs(2),
 	RunE: runAdd,
 }
 
 func init() {
+	addCmd.Flags().BoolVar(&fromStdin, "from-stdin", false, "Read additional text from stdin")
 	rootCmd.AddCommand(addCmd)
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	eventType := normalizeType(args[0])
 	text := strings.Join(args[1:], " ")
+
+	// Read from stdin if requested
+	if fromStdin {
+		stdinBytes, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("failed to read stdin: %w", err)
+		}
+		stdinText := strings.TrimSpace(string(stdinBytes))
+		if stdinText != "" {
+			text = text + "\n" + stdinText
+		}
+	}
 
 	// Validate type against allowlist
 	if !isValidType(eventType) {
