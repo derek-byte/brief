@@ -276,3 +276,87 @@ func UpsertGoal(db *sql.DB, repoID, branch, text string) error {
 
 	return nil
 }
+
+// SaveStash records a git stash reference for a branch
+func SaveStash(db *sql.DB, repoID, branch, message, stashRef, metaJSON string) error {
+	event := Event{
+		ID:        uuid.New().String(),
+		RepoID:    repoID,
+		Branch:    branch,
+		Type:      "stash",
+		Text:      message,
+		CreatedAt: time.Now().Unix(),
+		MetaJSON:  metaJSON,
+	}
+
+	if err := AddEvent(db, event); err != nil {
+		return fmt.Errorf("failed to save stash record: %w", err)
+	}
+
+	return nil
+}
+
+// GetLatestStash retrieves the most recent stash for a branch
+func GetLatestStash(db *sql.DB, repoID, branch string) (*Event, error) {
+	query := `
+SELECT id, repo_id, branch, type, text, created_at, meta_json
+FROM events
+WHERE repo_id = ? AND branch = ? AND type = 'stash'
+ORDER BY created_at DESC
+LIMIT 1`
+
+	var event Event
+	err := db.QueryRow(query, repoID, branch).Scan(
+		&event.ID,
+		&event.RepoID,
+		&event.Branch,
+		&event.Type,
+		&event.Text,
+		&event.CreatedAt,
+		&event.MetaJSON,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stash: %w", err)
+	}
+
+	return &event, nil
+}
+
+// GetAllStashes retrieves all stashes across all branches
+func GetAllStashes(db *sql.DB, repoID string) ([]Event, error) {
+	query := `
+SELECT id, repo_id, branch, type, text, created_at, meta_json
+FROM events
+WHERE repo_id = ? AND type = 'stash'
+ORDER BY created_at DESC`
+
+	rows, err := db.Query(query, repoID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query stashes: %w", err)
+	}
+	defer rows.Close()
+
+	var stashes []Event
+	for rows.Next() {
+		var event Event
+		err := rows.Scan(
+			&event.ID,
+			&event.RepoID,
+			&event.Branch,
+			&event.Type,
+			&event.Text,
+			&event.CreatedAt,
+			&event.MetaJSON,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan stash: %w", err)
+		}
+		stashes = append(stashes, event)
+	}
+
+	return stashes, nil
+}
