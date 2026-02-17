@@ -76,6 +76,11 @@ func (m Model) renderWideItem(item Item) string {
 		return selectedStyle.Render(line)
 	}
 
+	// Dim completed todos
+	if item.Event.Type == "todo" && item.Event.CompletedAt != nil && *item.Event.CompletedAt > 0 {
+		return dimStyle.Render(line)
+	}
+
 	return line
 }
 
@@ -121,6 +126,11 @@ func (m Model) renderCompactItem(item Item) string {
 	// Check if this item is selected
 	if m.isItemSelected(item) {
 		return selectedStyle.Render(line)
+	}
+
+	// Dim completed todos
+	if item.Event.Type == "todo" && item.Event.CompletedAt != nil && *item.Event.CompletedAt > 0 {
+		return dimStyle.Render(line)
 	}
 
 	return line

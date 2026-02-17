@@ -97,9 +97,22 @@ brief ui                  # Launch interactive TUI for browsing/managing notes
 - `?`: Show/hide help
 - `q`: Quit
 
-The TUI provides two viewing formats:
-- **Wide**: Events grouped by type with spacing (todo, decision, cmd, error, note)
-- **Compact**: Continuous timeline list with shortened type labels
+**Actions:**
+- `Enter`: Context-dependent action:
+  - On **todo**: Toggle completion (✓ prefix, dimmed style)
+  - On **cmd**: Exit TUI and run command in repo root
+  - On **note/choice/fix**: Show detail view with full text
+- `d`: Soft delete current item (immediate removal from list)
+- `e`: Edit current item in $EDITOR (saves to database)
+
+**Viewing Formats:**
+- **Wide**: Events grouped by type with spacing (todo, choice, cmd, note)
+- **Compact**: Continuous timeline list (all types, newest first)
+
+**Detail View:**
+- Press `Enter` on notes, choices, or fixes to see full text
+- Shows type label, complete content, and timestamps
+- Press `ESC` to return to list view
 
 ### Notes (Shorthand)
 ```bash
@@ -150,6 +163,7 @@ brief rehydrate --limit 100            # Limit events fetched
 
 - **Local-first**: All data stored privately in `~/Library/Application Support/branchbrief/`
 - **Branch-scoped**: Notes tied to your current git branch
+- **Interactive TUI**: Browse, toggle todos, run commands, edit notes, delete items
 - **Single goal per branch**: Updates instead of appends - one clear objective
 - **Per-branch stash management**: Never apply wrong stash to wrong branch
 - **Fast rehydration**: Get oriented in < 60 seconds

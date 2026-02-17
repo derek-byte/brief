@@ -30,21 +30,23 @@ const (
 
 // Model is the Bubble Tea model for the TUI
 type Model struct {
-	items      []Item
-	goal       *Item  // Single goal displayed as header
-	cursor     int
-	format     ViewFormat
-	mode       Mode
-	showTime   bool
-	showHelp   bool
-	width      int
-	height     int
-	branch     string
-	repoID     string
-	repoRoot   string
-	db         *sql.DB
-	quitting   bool
-	detailItem *Item // Item shown in detail view
+	items          []Item
+	goal           *Item  // Single goal displayed as header
+	cursor         int
+	format         ViewFormat
+	mode           Mode
+	showTime       bool
+	showHelp       bool
+	width          int
+	height         int
+	branch         string
+	repoID         string
+	repoRoot       string
+	db             *sql.DB
+	quitting       bool
+	detailItem     *Item  // Item shown in detail view
+	pendingCommand string // Command to run after TUI exits
+	pendingEdit    *Item  // Item to edit after TUI exits
 }
 
 // Item represents a displayable event in the list
@@ -84,6 +86,16 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
+// GetPendingCommand returns the command to run after TUI exits, if any
+func (m Model) GetPendingCommand() string {
+	return m.pendingCommand
+}
+
+// GetPendingEdit returns the item to edit after TUI exits, if any
+func (m Model) GetPendingEdit() *Item {
+	return m.pendingEdit
+}
+
 // Update handles key presses and updates the model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -93,6 +105,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		// Detail mode key handling
+		if m.mode == ModeDetail {
+			switch msg.String() {
+			case "esc":
+				m.mode = ModeNormal
+				m.detailItem = nil
+				return m, nil
+			case "q":
+				m.quitting = true
+				return m, tea.Quit
+			}
+			return m, nil
+		}
+
+		// Normal mode key handling
 		switch msg.String() {
 		case "q", "ctrl+c":
 			m.quitting = true
@@ -116,24 +143,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "j", "down":
-			// Move down, skipping blank lines in wide format
 			m.cursor = m.nextSelectableIndex(m.cursor, 1)
 			return m, nil
 
 		case "k", "up":
-			// Move up, skipping blank lines in wide format
 			m.cursor = m.nextSelectableIndex(m.cursor, -1)
 			return m, nil
 
 		case "g":
-			// Go to top
 			m.cursor = 0
 			return m, nil
 
 		case "G":
-			// Go to bottom
 			m.cursor = len(m.items) - 1
 			return m, nil
+
+		case "d":
+			// Soft delete current item
+			return m.handleDelete()
+
+		case "e":
+			// Edit current item in $EDITOR
+			return m.handleEdit()
+
+		case "enter":
+			// Context-dependent Enter behavior
+			return m.handleEnter()
 		}
 	}
 
@@ -164,6 +199,11 @@ func (m Model) nextSelectableIndex(current, delta int) int {
 func (m Model) View() string {
 	if m.quitting {
 		return ""
+	}
+
+	// Detail mode: show single item in full
+	if m.mode == ModeDetail {
+		return m.renderDetailView()
 	}
 
 	var out strings.Builder
@@ -223,10 +263,49 @@ func (m Model) renderStatusLine() string {
 func (m Model) renderHelp() string {
 	return `
 Navigation: j/k or ↑↓ (move), g/G (top/bottom)
+Actions:    Enter (toggle todo / run cmd / view), d (delete), e (edit)
 View:       v (toggle format)
 Help:       ? (toggle this help)
 Quit:       q
 `
+}
+
+// renderDetailView renders a single item in detail mode
+func (m Model) renderDetailView() string {
+	if m.detailItem == nil {
+		return "No item selected\n\nPress ESC to return"
+	}
+
+	var out strings.Builder
+
+	// Header with type label
+	headerStyle := lipgloss.NewStyle().Bold(true)
+	out.WriteString(headerStyle.Render(fmt.Sprintf("[%s]", m.detailItem.TypeLabel)))
+	out.WriteString("\n\n")
+
+	// Full text (no truncation)
+	out.WriteString(m.detailItem.DisplayText)
+	out.WriteString("\n\n")
+
+	// Metadata footer
+	ts := formatTimestamp(m.detailItem.Event.CreatedAt)
+	out.WriteString(fmt.Sprintf("Created: %s\n", ts))
+
+	if m.detailItem.Event.UpdatedAt != nil && *m.detailItem.Event.UpdatedAt > 0 {
+		updatedTs := formatTimestamp(*m.detailItem.Event.UpdatedAt)
+		out.WriteString(fmt.Sprintf("Updated: %s\n", updatedTs))
+	}
+
+	// Navigation hint
+	out.WriteString("\n")
+	width := m.width
+	if width == 0 {
+		width = 80
+	}
+	separator := strings.Repeat("─", width)
+	out.WriteString(fmt.Sprintf("%s\nESC=back q=quit", separator))
+
+	return out.String()
 }
 
 // buildItems converts events into displayable items with formatting
@@ -319,4 +398,119 @@ func getDisplayLabel(eventType string) string {
 		return "choice"
 	}
 	return eventType
+}
+
+// handleEnter performs context-dependent action based on item type
+func (m Model) handleEnter() (tea.Model, tea.Cmd) {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return m, nil
+	}
+
+	item := m.items[m.cursor]
+
+	switch item.Event.Type {
+	case "todo":
+		// Toggle completion
+		return m.handleTodoToggle()
+
+	case "cmd":
+		// Run command and exit
+		return m.handleRunCommand()
+
+	default:
+		// Open detail view for other types (note, choice, fix)
+		m.mode = ModeDetail
+		m.detailItem = &item
+		return m, nil
+	}
+}
+
+// handleTodoToggle toggles the completion state of a todo
+func (m Model) handleTodoToggle() (tea.Model, tea.Cmd) {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return m, nil
+	}
+
+	item := &m.items[m.cursor]
+	if item.Event.Type != "todo" {
+		return m, nil
+	}
+
+	// Toggle in database
+	err := store.ToggleTodoCompletion(m.db, item.Event.ID)
+	if err != nil {
+		// TODO: Show error to user
+		return m, nil
+	}
+
+	// Update local state
+	if item.Event.CompletedAt != nil && *item.Event.CompletedAt > 0 {
+		// Was completed, now uncomplete
+		item.Event.CompletedAt = nil
+		item.Prefix = "☐ "
+	} else {
+		// Was uncompleted, now complete
+		now := time.Now().Unix()
+		item.Event.CompletedAt = &now
+		item.Prefix = "✓ "
+	}
+
+	return m, nil
+}
+
+// handleRunCommand runs the selected command and exits
+func (m Model) handleRunCommand() (tea.Model, tea.Cmd) {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return m, nil
+	}
+
+	item := m.items[m.cursor]
+	if item.Event.Type != "cmd" {
+		return m, nil
+	}
+
+	// Store command to run after TUI exits
+	m.pendingCommand = item.Event.Text
+	m.quitting = true
+	return m, tea.Quit
+}
+
+// handleDelete soft deletes the current item
+func (m Model) handleDelete() (tea.Model, tea.Cmd) {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return m, nil
+	}
+
+	item := m.items[m.cursor]
+
+	// Soft delete in database
+	err := store.SoftDeleteEvent(m.db, item.Event.ID)
+	if err != nil {
+		// TODO: Show error to user
+		return m, nil
+	}
+
+	// Remove from local list
+	m.items = append(m.items[:m.cursor], m.items[m.cursor+1:]...)
+
+	// Adjust cursor if at end
+	if m.cursor >= len(m.items) && len(m.items) > 0 {
+		m.cursor = len(m.items) - 1
+	}
+
+	return m, nil
+}
+
+// handleEdit opens the current item in $EDITOR
+func (m Model) handleEdit() (tea.Model, tea.Cmd) {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return m, nil
+	}
+
+	item := &m.items[m.cursor]
+
+	// Store item to edit and exit TUI (editing will be handled externally)
+	m.pendingEdit = item
+	m.quitting = true
+	return m, tea.Quit
 }
