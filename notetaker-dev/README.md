@@ -98,11 +98,27 @@ brief issue "<text>"      # Add an issue reference
 brief note "<text>"       # Add a general note
 ```
 
+### View Modes
+```bash
+brief rehydrate                        # Structured view (default)
+brief rehydrate --view structured      # Grouped by type, oldest-first
+brief rehydrate --view timeline        # Chronological activity log
+```
+
+**Structured mode** (default): Best for "what do I do next?"
+- Groups events by type (Goal, Decisions, Todos, Commands, Notes)
+- Shows oldest-first within each group for chronological flow
+- Hides verbose event types (errors, fixes, stash records)
+
+**Timeline mode**: Best for "what happened?"
+- Shows all events in chronological order (newest-first)
+- Format: `HH:MM [type] text`
+- Includes all event types for complete activity log
+
 ### Other
 ```bash
 brief add <type> "<text>"              # Add any event type
 brief add error --from-stdin "<desc>"  # Capture from stdin
-brief rehydrate                        # Display branch brief
 brief rehydrate --limit 100            # Limit events fetched
 ```
 
