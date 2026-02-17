@@ -54,6 +54,12 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	return addEvent(eventType, text)
+}
+
+// addEvent is the shared logic for adding events
+// Used by both 'add' command and shorthand aliases
+func addEvent(eventType, text string) error {
 	// Validate type against allowlist
 	if !isValidType(eventType) {
 		return &UserError{
