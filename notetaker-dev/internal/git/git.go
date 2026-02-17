@@ -66,3 +66,51 @@ func runGitCommand(repoRoot string, args ...string) (string, error) {
 	}
 	return strings.TrimSpace(out.String()), nil
 }
+
+// GitState contains a snapshot of the current git repository state
+type GitState struct {
+	LastCommit     string   // "a1b2c3d Fix retry handler"
+	DirtyFileCount int      // Number of modified files
+	DiffStat       string   // "payments/retry.go (+42/-10), ..."
+	Errors         []string // Errors encountered while gathering state
+}
+
+// GetGitState collects a brief snapshot of the repository state
+// Tracks errors but doesn't fail - returns best-effort state
+func GetGitState(repoRoot string) GitState {
+	var state GitState
+
+	// 1. Get last commit message
+	if out, err := runGitCommand(repoRoot, "log", "-1", "--oneline"); err == nil {
+		state.LastCommit = out
+	} else {
+		state.Errors = append(state.Errors, "git log unavailable")
+	}
+
+	// 2. Count dirty files (NO shell dependencies like wc -l)
+	if out, err := runGitCommand(repoRoot, "status", "--porcelain"); err == nil {
+		out = strings.TrimSpace(out)
+		if out == "" {
+			state.DirtyFileCount = 0 // CRITICAL: empty output = 0 changes
+		} else {
+			state.DirtyFileCount = len(strings.Split(out, "\n"))
+		}
+	} else {
+		state.Errors = append(state.Errors, "git status unavailable")
+	}
+
+	// 3. Get diffstat (ONLY if there are changes - optimization for large repos)
+	if state.DirtyFileCount > 0 {
+		if out, err := runGitCommand(repoRoot, "diff", "--stat"); err == nil {
+			lines := strings.Split(out, "\n")
+			if len(lines) > 5 {
+				lines = lines[:5]
+			}
+			state.DiffStat = strings.Join(lines, "\n")
+		} else {
+			state.Errors = append(state.Errors, "git diff unavailable")
+		}
+	}
+
+	return state
+}
