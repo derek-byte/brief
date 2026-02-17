@@ -94,3 +94,26 @@ ON events(repo_id, branch, created_at DESC);
 
 	return nil
 }
+
+// AddEvent inserts a new event into the database
+func AddEvent(db *sql.DB, event Event) error {
+	query := `
+INSERT INTO events (id, repo_id, branch, type, text, created_at, meta_json)
+VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+	_, err := db.Exec(query,
+		event.ID,
+		event.RepoID,
+		event.Branch,
+		event.Type,
+		event.Text,
+		event.CreatedAt,
+		event.MetaJSON,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to insert event: %w", err)
+	}
+
+	return nil
+}
