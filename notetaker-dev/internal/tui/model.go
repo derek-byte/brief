@@ -26,6 +26,7 @@ type Mode int
 const (
 	ModeNormal Mode = iota // Normal list navigation
 	ModeDetail             // Detail view for a single item
+	ModeFilter             // Filter/search mode
 )
 
 // Model is the Bubble Tea model for the TUI
@@ -47,6 +48,9 @@ type Model struct {
 	detailItem     *Item  // Item shown in detail view
 	pendingCommand string // Command to run after TUI exits
 	pendingEdit    *Item  // Item to edit after TUI exits
+	lastDeletedID  string // ID of last deleted item (for undo)
+	filterQuery    string // Current filter query string
+	allItems       []Item // Unfiltered items list
 }
 
 // Item represents a displayable event in the list
@@ -67,17 +71,18 @@ func NewModel(events []store.Event, branch, repoID, repoRoot string, db *sql.DB)
 	sortItemsForWideFormat(items)
 
 	return Model{
-		items:    items,
-		goal:     goal,
-		cursor:   0,
-		format:   FormatWide,
-		mode:     ModeNormal,
-		showTime: false, // Off by default, but toggleable
-		showHelp: false,
-		branch:   branch,
-		repoID:   repoID,
-		repoRoot: repoRoot,
-		db:       db,
+		items:     items,
+		allItems:  items, // Keep unfiltered copy
+		goal:      goal,
+		cursor:    0,
+		format:    FormatWide,
+		mode:      ModeNormal,
+		showTime:  false, // Off by default, but toggleable
+		showHelp:  false,
+		branch:    branch,
+		repoID:    repoID,
+		repoRoot:  repoRoot,
+		db:        db,
 	}
 }
 
@@ -117,6 +122,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			return m, nil
+		}
+
+		// Filter mode key handling
+		if m.mode == ModeFilter {
+			switch msg.String() {
+			case "esc":
+				// Clear filter and return to normal
+				m.filterQuery = ""
+				m.mode = ModeNormal
+				m.applyFilter()
+				return m, nil
+			case "enter":
+				// Keep filter active, return to normal
+				m.mode = ModeNormal
+				return m, nil
+			case "backspace":
+				// Remove last character
+				if len(m.filterQuery) > 0 {
+					m.filterQuery = m.filterQuery[:len(m.filterQuery)-1]
+					m.applyFilter()
+				}
+				return m, nil
+			default:
+				// Add typed character to filter
+				if len(msg.String()) == 1 {
+					m.filterQuery += msg.String()
+					m.applyFilter()
+				}
+				return m, nil
+			}
 		}
 
 		// Normal mode key handling
@@ -162,9 +197,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Soft delete current item
 			return m.handleDelete()
 
+		case "u":
+			// Undo last delete
+			return m.handleUndo()
+
 		case "e":
 			// Edit current item in $EDITOR
 			return m.handleEdit()
+
+		case "/":
+			// Enter filter mode
+			m.mode = ModeFilter
+			m.filterQuery = ""
+			return m, nil
 
 		case "enter":
 			// Context-dependent Enter behavior
@@ -242,11 +287,6 @@ func (m Model) renderGoalHeader() string {
 
 // renderStatusLine shows current mode and hints
 func (m Model) renderStatusLine() string {
-	formatName := "wide"
-	if m.format == FormatCompact {
-		formatName = "compact"
-	}
-
 	// Use terminal width for separator line, default to 80 if not set
 	width := m.width
 	if width == 0 {
@@ -254,9 +294,28 @@ func (m Model) renderStatusLine() string {
 	}
 	separator := strings.Repeat("─", width)
 
-	return fmt.Sprintf("%s\n"+
-		"%s · %s · %d items · ?=help v=view q=quit",
-		separator, m.branch, formatName, len(m.items))
+	var statusText string
+
+	switch m.mode {
+	case ModeFilter:
+		statusText = fmt.Sprintf("FILTER: %s (esc=clear, enter=apply)", m.filterQuery)
+	case ModeDetail:
+		statusText = "DETAIL · esc=back q=quit"
+	default:
+		// Normal mode
+		formatName := "wide"
+		if m.format == FormatCompact {
+			formatName = "compact"
+		}
+		filterHint := ""
+		if m.filterQuery != "" {
+			filterHint = fmt.Sprintf(" · filter:%s", m.filterQuery)
+		}
+		statusText = fmt.Sprintf("%s · %s · %d items%s · /=filter u=undo ?=help v=view q=quit",
+			m.branch, formatName, len(m.items), filterHint)
+	}
+
+	return fmt.Sprintf("%s\n%s", separator, statusText)
 }
 
 // renderHelp shows keybindings
@@ -490,12 +549,70 @@ func (m Model) handleDelete() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Remove from local list
+	// Store ID for undo
+	m.lastDeletedID = item.Event.ID
+
+	// Remove from visible list
 	m.items = append(m.items[:m.cursor], m.items[m.cursor+1:]...)
+
+	// Remove from allItems too
+	for i, it := range m.allItems {
+		if it.Event.ID == item.Event.ID {
+			m.allItems = append(m.allItems[:i], m.allItems[i+1:]...)
+			break
+		}
+	}
 
 	// Adjust cursor if at end
 	if m.cursor >= len(m.items) && len(m.items) > 0 {
 		m.cursor = len(m.items) - 1
+	}
+
+	return m, nil
+}
+
+// handleUndo restores the last deleted item
+func (m Model) handleUndo() (tea.Model, tea.Cmd) {
+	if m.lastDeletedID == "" {
+		return m, nil
+	}
+
+	// Restore in database by clearing deleted_at
+	err := store.RestoreDeletedEvent(m.db, m.lastDeletedID)
+	if err != nil {
+		// TODO: Show error to user
+		return m, nil
+	}
+
+	// Refresh list from DB
+	events, err := store.GetEvents(m.db, m.repoID, m.branch, 200)
+	if err != nil {
+		return m, nil
+	}
+
+	items, goal := buildItems(events)
+
+	// Re-sort based on current format
+	if m.format == FormatWide {
+		sortItemsForWideFormat(items)
+	} else {
+		sortItemsForCompactFormat(items)
+	}
+
+	// Update model
+	m.allItems = items
+	m.items = items
+	m.goal = goal
+	m.lastDeletedID = ""
+
+	// Apply filter if active
+	if m.filterQuery != "" {
+		m.applyFilter()
+	}
+
+	// Reset cursor to safe position
+	if m.cursor >= len(m.items) {
+		m.cursor = 0
 	}
 
 	return m, nil
@@ -513,4 +630,36 @@ func (m Model) handleEdit() (tea.Model, tea.Cmd) {
 	m.pendingEdit = item
 	m.quitting = true
 	return m, tea.Quit
+}
+
+// applyFilter filters items based on filterQuery
+func (m *Model) applyFilter() {
+	if m.filterQuery == "" {
+		// No filter, show all items
+		m.items = m.allItems
+		return
+	}
+
+	// Filter items by query (case-insensitive substring match)
+	query := strings.ToLower(m.filterQuery)
+	var filtered []Item
+	for _, item := range m.allItems {
+		// Match against text
+		if strings.Contains(strings.ToLower(item.DisplayText), query) {
+			filtered = append(filtered, item)
+			continue
+		}
+		// Match against type
+		if strings.Contains(strings.ToLower(item.Event.Type), query) {
+			filtered = append(filtered, item)
+			continue
+		}
+	}
+
+	m.items = filtered
+
+	// Reset cursor if out of bounds
+	if m.cursor >= len(m.items) {
+		m.cursor = 0
+	}
 }

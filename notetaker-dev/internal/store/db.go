@@ -447,6 +447,15 @@ func SoftDeleteEvent(db *sql.DB, eventID string) error {
 	return nil
 }
 
+// RestoreDeletedEvent restores a soft-deleted event
+func RestoreDeletedEvent(db *sql.DB, eventID string) error {
+	_, err := db.Exec(`UPDATE events SET deleted_at = NULL WHERE id = ?`, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to restore event: %w", err)
+	}
+	return nil
+}
+
 // UpdateEventText updates the text of an event and sets updated_at
 func UpdateEventText(db *sql.DB, eventID, newText string) error {
 	_, err := db.Exec(`UPDATE events SET text = ?, updated_at = ? WHERE id = ?`,

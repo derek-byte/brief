@@ -103,7 +103,22 @@ brief ui                  # Launch interactive TUI for browsing/managing notes
   - On **cmd**: Exit TUI and run command in repo root
   - On **note/choice/fix**: Show detail view with full text
 - `d`: Soft delete current item (immediate removal from list)
+- `u`: Undo last delete (restores most recently deleted item)
 - `e`: Edit current item in $EDITOR (saves to database)
+- `/`: Enter filter mode (live search)
+
+**Filter Mode:**
+- Press `/` to enter filter mode
+- Type to search (case-insensitive, matches text and type)
+- Filtering happens live as you type
+- `ESC`: Clear filter and return to normal mode
+- `Enter`: Keep filter active and return to normal mode (navigate filtered results)
+- Status line shows current filter query
+
+**Undo:**
+- Press `u` to restore the most recently deleted item
+- Undo works for the last deletion in the current UI session
+- Immediately restores to database and refreshes list
 
 **Viewing Formats:**
 - **Wide**: Events grouped by type with spacing (todo, choice, cmd, note)
