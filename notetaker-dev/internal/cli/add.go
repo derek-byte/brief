@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/derek/branchbrief/internal/git"
-	"github.com/derek/branchbrief/internal/store"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -21,11 +21,11 @@ var addCmd = &cobra.Command{
 	Long: `Add a branch-scoped note of the specified type.
 
 Valid types:
-  goal, decision, todo, cmd, error, link, issue, note, fix
+  goal, choice, todo, cmd, error, link, issue, note, fix
 
 Examples:
   brief add goal "Implement user authentication"
-  brief add decision "Use JWT tokens for sessions"
+  brief add choice "Use JWT tokens for sessions"
   brief add todo "Write unit tests"
   brief add cmd "make test"
   echo "error output" | brief add error --from-stdin "Build failure"`,
@@ -60,6 +60,9 @@ func runAdd(cmd *cobra.Command, args []string) error {
 // addEvent is the shared logic for adding events
 // Used by both 'add' command and shorthand aliases
 func addEvent(eventType, text string) error {
+	// Normalize type (handles synonyms like choice -> decision)
+	eventType = normalizeType(eventType)
+
 	// Auto-detect type from text prefix (e.g., "todo: text" -> type=todo, text="text")
 	// Only applies when using catch-all command (eventType="note")
 	if eventType == "note" {
@@ -73,7 +76,7 @@ func addEvent(eventType, text string) error {
 	// Validate type against allowlist
 	if !isValidType(eventType) {
 		return &UserError{
-			Msg: fmt.Sprintf("invalid type: %s (valid types: goal, decision, todo, cmd, error, link, issue, note, fix)", eventType),
+			Msg: fmt.Sprintf("invalid type: %s (valid types: goal, choice, todo, cmd, error, link, issue, note, fix)", eventType),
 		}
 	}
 
@@ -126,6 +129,8 @@ func normalizeType(t string) string {
 		return "cmd"
 	case "bug":
 		return "error"
+	case "decision":
+		return "choice" // Map old decision type to new choice type
 	}
 	return t
 }
@@ -133,15 +138,15 @@ func normalizeType(t string) string {
 // isValidType checks if the event type is in the allowlist
 func isValidType(t string) bool {
 	valid := map[string]bool{
-		"goal":     true,
-		"decision": true,
-		"todo":     true,
-		"cmd":      true,
-		"error":    true,
-		"link":     true,
-		"issue":    true,
-		"note":     true,
-		"fix":      true,
+		"goal":   true,
+		"choice": true,
+		"todo":   true,
+		"cmd":    true,
+		"error":  true,
+		"link":   true,
+		"issue":  true,
+		"note":   true,
+		"fix":    true,
 	}
 	return valid[t]
 }

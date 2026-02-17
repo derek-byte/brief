@@ -41,11 +41,21 @@ var fixCmd = &cobra.Command{
 
 var decisionCmd = &cobra.Command{
 	Use:   "decision <text...>",
-	Short: "Add a decision (shorthand for 'add decision')",
+	Short: "Add a choice (alias for backwards compatibility, use 'choice' instead)",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text := strings.Join(args, " ")
-		return addEvent("decision", text)
+		return addEvent("decision", text) // Will be normalized to "choice"
+	},
+}
+
+var choiceCmd = &cobra.Command{
+	Use:   "choice <text...>",
+	Short: "Add a choice (shorthand for 'add choice')",
+	Args:  cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		text := strings.Join(args, " ")
+		return addEvent("choice", text)
 	},
 }
 
@@ -96,6 +106,7 @@ func init() {
 	rootCmd.AddCommand(cmdCmd)
 	rootCmd.AddCommand(fixCmd)
 	rootCmd.AddCommand(decisionCmd)
+	rootCmd.AddCommand(choiceCmd)
 	rootCmd.AddCommand(errorCmd)
 	rootCmd.AddCommand(linkCmd)
 	rootCmd.AddCommand(issueCmd)

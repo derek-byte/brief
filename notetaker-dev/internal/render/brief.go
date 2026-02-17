@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/derek/branchbrief/internal/git"
-	"github.com/derek/branchbrief/internal/store"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
 )
 
 // Brief contains all data needed to render a branch rehydration summary
@@ -55,13 +55,17 @@ func RenderBrief(b Brief) string {
 
 	eventsByType := groupEventsByType(b.Events)
 
-	// Core sections only: Decisions, Todos, Commands, Notes
+	// Core sections only: Choices, Todos, Commands, Notes
 	// All sorted oldest-first for chronological flow
 
-	// Decisions (oldest first, limit 7)
-	if decisions, ok := eventsByType["decision"]; ok && len(decisions) > 0 {
-		out.WriteString("Decisions\n")
-		writeSection(&out, decisions, false, 7, false)
+	// Choices (oldest first, limit 7) - includes old "decision" entries
+	choices := eventsByType["choice"]
+	if oldDecisions, ok := eventsByType["decision"]; ok {
+		choices = append(choices, oldDecisions...)
+	}
+	if len(choices) > 0 {
+		out.WriteString("Choices\n")
+		writeSection(&out, choices, false, 7, false)
 		out.WriteString("\n")
 	}
 
@@ -103,8 +107,8 @@ func buildCountsString(eventsByType map[string][]store.Event, currentGoal *store
 		parts = append(parts, "1 goal")
 	}
 
-	// Order: decision, todo, cmd, error, fix, issue, link, note
-	order := []string{"decision", "todo", "cmd", "error", "fix", "issue", "link", "note"}
+	// Order: choice, todo, cmd, error, fix, issue, link, note
+	order := []string{"choice", "todo", "cmd", "error", "fix", "issue", "link", "note"}
 	for _, t := range order {
 		if events, ok := eventsByType[t]; ok && len(events) > 0 {
 			count := len(events)
@@ -149,7 +153,7 @@ func writeSection(out *strings.Builder, events []store.Event, newestFirst bool, 
 	copy(sorted, events)
 
 	if newestFirst {
-		// Newest first (decisions, commands, errors)
+		// Newest first (choices, commands, errors)
 		sort.Slice(sorted, func(i, j int) bool {
 			return sorted[i].CreatedAt > sorted[j].CreatedAt
 		})

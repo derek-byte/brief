@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/derek/branchbrief/internal/git"
-	"github.com/derek/branchbrief/internal/render"
-	"github.com/derek/branchbrief/internal/store"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/render"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ var rehydrateCmd = &cobra.Command{
 	Use:   "rehydrate",
 	Short: "Display a concise brief of the current branch context",
 	Long: `Print a structured summary of your branch's development context,
-including goals, decisions, todos, and git state. Designed to get
+including goals, choices, todos, and git state. Designed to get
 you oriented in under 60 seconds.`,
 	RunE: runRehydrate,
 }

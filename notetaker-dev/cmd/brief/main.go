@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/derek/branchbrief/internal/cli"
+	"github.com/derek-byte/coding-tools/notetaker-dev/internal/cli"
 )
 
 func main() {
