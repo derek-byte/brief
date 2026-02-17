@@ -13,6 +13,56 @@ const (
 	hookEndMarker   = "# <<< branchbrief auto-context <<<"
 )
 
+// excludeHookIfNeeded adds hook to .git/info/exclude if it's in the working tree
+func excludeHookIfNeeded(repoRoot, hookPath string) error {
+	// Check if hook is in .git/ directory (outside working tree)
+	gitDir := filepath.Join(repoRoot, ".git")
+	relPath, err := filepath.Rel(gitDir, hookPath)
+	if err == nil && !strings.HasPrefix(relPath, "..") {
+		// Hook is inside .git/, no need to exclude
+		return nil
+	}
+
+	// Hook is in working tree, add to .git/info/exclude
+	excludePath := filepath.Join(repoRoot, ".git", "info", "exclude")
+
+	// Read existing exclude file
+	existingContent := ""
+	if data, err := os.ReadFile(excludePath); err == nil {
+		existingContent = string(data)
+	}
+
+	// Get relative path from repo root for exclude pattern
+	relToRepo, err := filepath.Rel(repoRoot, hookPath)
+	if err != nil {
+		return err
+	}
+
+	// Check if already excluded
+	if strings.Contains(existingContent, relToRepo) {
+		return nil
+	}
+
+	// Append to exclude file
+	newContent := existingContent
+	if !strings.HasSuffix(newContent, "\n") && newContent != "" {
+		newContent += "\n"
+	}
+	newContent += relToRepo + "\n"
+
+	// Ensure .git/info directory exists
+	if err := os.MkdirAll(filepath.Dir(excludePath), 0755); err != nil {
+		return err
+	}
+
+	// Write exclude file
+	if err := os.WriteFile(excludePath, []byte(newContent), 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // getHooksDir returns the hooks directory, respecting core.hooksPath if set
 func getHooksDir(repoRoot string) (string, error) {
 	// Check if core.hooksPath is configured
@@ -74,6 +124,11 @@ fi
 	// Write hook file
 	if err := os.WriteFile(hookPath, []byte(newContent), 0755); err != nil {
 		return fmt.Errorf("failed to write hook: %w", err)
+	}
+
+	// If hook is in working tree (not .git/hooks), add to .git/info/exclude
+	if err := excludeHookIfNeeded(repoRoot, hookPath); err != nil {
+		return fmt.Errorf("failed to exclude hook from git: %w", err)
 	}
 
 	return nil
