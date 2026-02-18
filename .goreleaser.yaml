@@ -12,14 +12,10 @@ builds:
     env:
       - CGO_ENABLED=1
     goos:
-      - darwin
-      - linux
+      - darwin  # macOS only for now (SQLite + CGO makes Linux cross-compilation complex)
     goarch:
       - amd64
       - arm64
-    # SQLite requires CGO, so we need to handle cross-compilation carefully
-    # For macOS, we'll build both architectures natively
-    # For Linux, we'll build amd64 with CGO
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
