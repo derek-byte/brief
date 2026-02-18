@@ -10,9 +10,11 @@ builds:
     main: ./cmd/brief
     binary: brief
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0  # Pure Go build with modernc.org/sqlite
     goos:
-      - darwin  # macOS only for now (SQLite + CGO makes Linux cross-compilation complex)
+      - darwin
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
@@ -24,9 +26,7 @@ builds:
 
 archives:
   - id: brief-archive
-    formats:
-      - tar.gz
-      - zip
+    format: tar.gz  # Single format to avoid Homebrew conflicts
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
