@@ -1,169 +1,240 @@
-# CLAUDE.md — BranchBrief v1 incremental build guide
+# BranchBrief Development Guide
 
-This file is the working agreement for implementing BranchBrief (local-first CLI) in small, reviewable steps.
+## Project Overview
 
-## Principles
+BranchBrief (`brief`) is a local-first CLI tool for managing branch-scoped development notes. It helps developers capture context, todos, decisions, and commands while working, then quickly rehydrate that context when returning to a branch.
 
-- **Max one feature per commit.** If you touch multiple concerns, split it.
-- **Small diffs.** Prefer 20–120 lines changed per commit.
-- **Refactor as you go.** Keep code tidy, remove dead paths quickly.
-- **Few comments.** Prefer clear names + small functions. Comment only on *why*, not *what*.
-- **Deterministic behavior.** No “magic AI” in v1; always reproducible output.
-- **Local-first + private.** Store data outside the repo by default.
+**Core Architecture:**
+- Go CLI application using Cobra for command handling
+- SQLite database for persistent storage (with CGO dependency)
+- Bubble Tea TUI for interactive mode
+- Git integration for branch detection and hook management
 
-## Semantic commit messages
+**Key Design Principles:**
+- Local-first: All data stored privately on user's machine
+- Branch-scoped: Each git branch gets isolated context
+- Fast rehydration: Resume work in < 60 seconds
+- Low friction: Shorthand commands for rapid capture
 
-Use **Conventional Commits**:
+## Release Management with GoReleaser
 
-- `feat:` user-facing functionality
-- `fix:` bug fix
-- `refactor:` internal change, no behavior change
-- `test:` add/adjust tests
-- `chore:` tooling, deps, build, CI
+### Overview
 
-Examples:
-- `feat(cli): add brief add command`
-- `feat(store): persist events in sqlite`
-- `feat(rehydrate): render branch brief`
-- `fix(git): handle detached HEAD`
-- `refactor(render): simplify section formatting`
+This project uses [GoReleaser](https://goreleaser.com) to automate releases across multiple platforms and publish to Homebrew.
 
-## Formatting & code style
+### Release Process
 
-- Keep functions short (≈ 30 lines max).
-- Avoid deep nesting; return early.
-- Prefer simple data structures over cleverness.
-- Do not introduce new dependencies unless they clearly reduce complexity.
+**Creating a Release:**
 
-## “Definition of Done” per commit
+1. **Tag the version:**
+   ```bash
+   git tag -a v1.0.1 -m "Release v1.0.1"
+   git push origin v1.0.1
+   ```
 
-Each commit should:
-- compile/build
-- include/update tests when feasible
-- not add TODOs that block later steps (unless explicitly staged)
-- keep CLI help text accurate
-- avoid partial, abandoned abstractions
+2. **GitHub Actions automatically:**
+   - Runs tests
+   - Builds for macOS and Linux (amd64/arm64)
+   - Creates GitHub release
+   - Publishes to Homebrew tap
 
-## Incremental plan (one feature per commit)
+3. **Users install via Homebrew:**
+   ```bash
+   brew install derek-byte/tap/brief
+   ```
 
-### 0) Repo scaffolding
-**Commit:** `chore: init go module and basic CLI skeleton`
-- `go mod init …`
-- `cmd/brief/main.go` prints help / version
-- Basic `--version` flag
+### GoReleaser Configuration
 
-### 1) Git context detection
-**Commit:** `feat(git): detect repo root and branch`
-- Implement:
-  - repo root: `git rev-parse --show-toplevel`
-  - branch: `git branch --show-current`
-  - fallback to short HEAD for detached mode
-- Add minimal unit tests for parsing outputs (mock command runner).
+**Location:** `.goreleaser.yaml`
 
-### 2) Local app data directory (mac default)
-**Commit:** `feat(store): resolve app data dir on mac`
-- Default path:
-  - `~/Library/Application Support/branchbrief/`
-- Ensure directory exists on startup.
-- Keep logic centralized (`internal/store/path.go`).
+**Key Settings:**
 
-### 3) SQLite schema + migrations
-**Commit:** `feat(store): initialize sqlite and events table`
-- Create DB if missing at:
-  - `<appdir>/branchbrief.sqlite`
-- Create table `events` (append-only):
-  - `id TEXT PRIMARY KEY`
-  - `repo_id TEXT NOT NULL`
-  - `branch TEXT NOT NULL`
-  - `type TEXT NOT NULL`
-  - `text TEXT NOT NULL`
-  - `created_at INTEGER NOT NULL` (unix seconds)
-  - `meta_json TEXT NOT NULL DEFAULT '{}'`
+- **CGO_ENABLED=1**: Required for SQLite (go-sqlite3 dependency)
+- **macOS runner**: GitHub Actions uses macOS for native CGO cross-compilation
+- **Platforms**: darwin/linux, amd64/arm64
+- **Homebrew tap**: Automatically updates `derek-byte/homebrew-tap`
 
-### 4) `brief add`
-**Commit:** `feat(cli): add brief add command`
-- `brief add <type> <text...>`
-- Validate type in a small allowlist: `goal,decision,todo,cmd,error,link,issue,note`
-- Persist event using sqlite.
-- Keep output minimal: `Added <type> to <branch>`.
+**Important Notes:**
 
-### 5) `brief status`
-**Commit:** `feat(cli): add brief status command`
-- For current `{repo, branch}` show:
-  - counts by type
-  - last updated timestamp
-- No fancy formatting yet; keep it readable.
+1. **SQLite CGO Requirement**: The project uses `github.com/mattn/go-sqlite3` which requires CGO. This means:
+   - Cannot use `CGO_ENABLED=0`
+   - Cross-compilation requires platform-specific toolchains
+   - macOS runner provides best compatibility for darwin builds
 
-### 6) Git state snippet for rehydrate
-**Commit:** `feat(git): collect brief git state`
-- Gather:
-  - last commit `git log -1 --oneline`
-  - dirty file count from `git status --porcelain`
-  - optional diffstat `git diff --stat` (truncate lines)
-- Return a small `GitState` struct.
+2. **Homebrew Token**: The workflow uses `HOMEBREW_TAP_GITHUB_TOKEN` secret to push formula updates to the tap repository. This must be configured in GitHub repository secrets.
 
-### 7) `brief rehydrate` renderer (no AI)
-**Commit:** `feat(rehydrate): render branch brief`
-- Query events for current `{repo, branch}`
-- Render sections in this order:
-  - Goal, State, Decisions, Known issues, Next steps, Commands
-- Hard limits:
-  - max 7 bullets per section
-  - truncate overly long lines (e.g., 160 chars)
-- The brief should fit in one terminal screen most of the time.
+### Testing Releases Locally
 
-### 8) Stdin capture for logs/commands
-**Commit:** `feat(cli): support --from-stdin for add`
-- `brief add error --from-stdin "redis timeout"`
-- If both text args and stdin provided, combine with newline.
+**Snapshot release (no publish):**
+```bash
+goreleaser release --snapshot --clean
+```
 
-### 9) Quality pass (refactor only)
-**Commit:** `refactor: consolidate command runner and error handling`
-- No behavior changes; reduce duplication.
-- Normalize user-facing errors (actionable, short).
+**Build only:**
+```bash
+goreleaser build --snapshot --clean
+```
 
-## Testing guidance
+**Check configuration:**
+```bash
+goreleaser check
+```
 
-- Prefer unit tests for:
-  - git output parsing
-  - sqlite init and simple queries (use temp dir)
-  - renderer section limits/truncation
-- Keep tests fast and local. Avoid integration tests requiring real git repo until later.
+### Homebrew Tap Setup
 
-## CLI UX rules
+**Repository:** `derek-byte/homebrew-tap`
 
-- Commands should be composable and scriptable.
-- Exit codes:
-  - `0` success
-  - `1` user error (bad args)
-  - `2` runtime error (git/db failures)
-- Errors should say what to do next (e.g., “Run inside a git repo.”)
+The tap repository is automatically managed by GoReleaser. When a release is created:
+1. GoReleaser generates the formula file
+2. Commits it to the tap repo's `Formula/` directory
+3. Users can install with `brew install derek-byte/tap/brief`
 
-## Refactoring rules
+**Formula location:** `https://github.com/derek-byte/homebrew-tap/blob/main/Formula/brief.rb`
 
-- If a function becomes unclear, refactor in the same commit if it’s *part of the feature*.
-- Larger cleanups: do them in a separate `refactor:` commit immediately after.
+### Version Bumping Strategy
 
-## What NOT to add in v1
+This project follows semantic versioning (semver):
+- **v1.0.x**: Patch releases (bug fixes)
+- **v1.x.0**: Minor releases (new features, backward compatible)
+- **v2.0.0**: Major releases (breaking changes)
 
-- Cloud sync / auth
-- Notion/Docs integrations
-- Mermaid/graphs
-- Embeddings/vector DB
-- LLM-based summarization
+**Commit message prefixes map to version bumps:**
+- `fix:` → patch version
+- `feat:` → minor version
+- `feat!:` or `BREAKING CHANGE:` → major version
 
-## Quick local workflow
+### GitHub Secrets Required
 
-- `go test ./...`
-- `go run ./cmd/brief --help`
-- `go run ./cmd/brief add decision "…"`
-- `go run ./cmd/brief rehydrate`
+For automated releases, configure these secrets in GitHub repository settings:
 
-## Output contract (rehydrate)
+1. **GITHUB_TOKEN**: Automatically provided by GitHub Actions
+2. **HOMEBREW_TAP_GITHUB_TOKEN**: Personal Access Token with `repo` scope for tap repository
 
-Rehydrate must always show:
-- Branch identifier
-- Last updated time
-- At least one of: Goal/Decisions/Todos/Commands (or “No notes yet”)
+**Creating the tap token:**
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Create new token with `repo` scope
+3. Add to repository secrets as `HOMEBREW_TAP_GITHUB_TOKEN`
 
-Keep it short. Optimize for “I’m back, what now?”.
+## Development Workflow
+
+### Building Locally
+
+```bash
+# Development build
+go build -o brief ./cmd/brief
+
+# Install to ~/bin for testing
+go build -o ~/bin/brief ./cmd/brief
+
+# Run tests
+go test ./...
+```
+
+### Git Hooks Integration
+
+The tool installs git hooks to automatically show branch context on checkout:
+
+**Implementation:** `internal/git/hooks.go`
+
+**Features:**
+- Respects `core.hooksPath` (Husky compatibility)
+- Automatically excludes hook files from git status (`.git/info/exclude`)
+- Appends to existing hooks (doesn't overwrite)
+
+**Testing hook installation:**
+```bash
+cd test-repo
+brief init
+git checkout -b test-branch
+# Should see brief summary on checkout
+```
+
+## Database Schema
+
+**Location:** `~/Library/Application Support/branchbrief/branchbrief.sqlite`
+
+**Schema:** (see `internal/store/db.go`)
+- `events` table with branch-scoped entries
+- Soft delete support (`deleted_at` timestamp)
+- Todo completion tracking (`completed_at`)
+- Edit history (`updated_at`)
+
+## TUI Architecture
+
+**Framework:** Bubble Tea (charmbracelet/bubbletea)
+
+**Key Files:**
+- `internal/tui/model.go`: Main TUI model
+- `internal/tui/render.go`: Rendering logic
+- `internal/tui/keys.go`: Keyboard shortcuts
+
+**Features:**
+- Dual view modes (wide/compact)
+- Live filtering/search
+- Todo completion toggling
+- Command execution
+- Undo/redo for deletions
+
+## Future Enhancements
+
+### Potential Features
+- Export to markdown
+- Sync between machines (optional)
+- AI-powered summary generation
+- Integration with issue trackers
+- Plugin system for custom event types
+
+### Performance Considerations
+- Database indexing for large repositories
+- Lazy loading in TUI for many events
+- Pagination for rehydrate command
+
+## Contributing
+
+When making changes:
+1. Follow conventional commits (`feat:`, `fix:`, etc.)
+2. Add tests for new features
+3. Run `goreleaser check` before tagging releases
+4. Test on both macOS and Linux if possible
+5. Update this doc when changing architecture
+
+## Troubleshooting
+
+### CGO Build Issues
+
+If you encounter CGO errors:
+```bash
+# macOS: Install Xcode command line tools
+xcode-select --install
+
+# Linux: Install gcc
+sudo apt-get install build-essential  # Debian/Ubuntu
+sudo yum install gcc                   # RHEL/CentOS
+```
+
+### Hook Installation Issues
+
+If `brief init` fails to install hooks:
+1. Check git version: `git --version` (need 2.9+)
+2. Verify repo is a git repository: `git status`
+3. Check permissions on hooks directory
+4. Review `.git/info/exclude` for conflicts
+
+### Database Issues
+
+If database becomes corrupted:
+```bash
+# Backup first
+cp ~/Library/Application\ Support/branchbrief/branchbrief.sqlite ~/branchbrief-backup.sqlite
+
+# Then remove and reinitialize
+rm ~/Library/Application\ Support/branchbrief/branchbrief.sqlite
+brief rehydrate  # This will recreate the schema
+```
+
+## Resources
+
+- [GoReleaser Documentation](https://goreleaser.com)
+- [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
+- [Bubble Tea Tutorial](https://github.com/charmbracelet/bubbletea/tree/master/tutorials)
+- [Cobra CLI Guide](https://github.com/spf13/cobra)

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
+	"github.com/derek-byte/coding-tools/internal/store"
 	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
 )

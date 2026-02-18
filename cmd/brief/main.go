@@ -4,10 +4,20 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/cli"
+	"github.com/derek-byte/coding-tools/internal/cli"
+)
+
+// Version information - set by GoReleaser at build time
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 func main() {
+	// Set version info for CLI
+	cli.SetVersion(version, commit, date)
+
 	if err := cli.Execute(); err != nil {
 		// Inspect error type for exit code
 		switch err.(type) {

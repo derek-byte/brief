@@ -31,9 +31,20 @@ sudo mv brief /usr/local/bin/brief
 brief --version
 ```
 
-### Option 3: Homebrew (Future)
+### Option 3: Homebrew (Recommended)
 
-Coming soon! For now, use Option 1 or 2 above.
+```bash
+# Add the tap
+brew tap derek-byte/tap
+
+# Install brief
+brew install brief
+
+# Verify installation
+brief --version
+```
+
+Homebrew handles installation, updates, and PATH configuration automatically.
 
 ## Quick Start
 
@@ -201,4 +212,30 @@ This is v1 - focused on core workflows:
 - Rehydrating when you return
 - Staying private and local
 
-For full implementation plan, see `.claude/agents/CLAUDE.md`
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/derek-byte/coding-tools.git
+cd coding-tools/notetaker-dev
+
+# Build
+go build -o brief ./cmd/brief
+
+# Run tests
+go test ./...
+```
+
+### Releases
+
+This project uses [GoReleaser](https://goreleaser.com) for automated releases:
+
+**Create a release:**
+```bash
+git tag -a v1.0.1 -m "Release v1.0.1"
+git push origin v1.0.1
+```
+
+GitHub Actions automatically builds for macOS/Linux and publishes to Homebrew.
+
+For full development guide and architecture details, see `.claude/agents/CLAUDE.md`

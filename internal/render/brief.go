@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
+	"github.com/derek-byte/coding-tools/internal/git"
+	"github.com/derek-byte/coding-tools/internal/store"
 )
 
 // Brief contains all data needed to render a branch rehydration summary

@@ -9,7 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
+	"github.com/derek-byte/coding-tools/internal/store"
 )
 
 // ViewFormat determines how items are displayed

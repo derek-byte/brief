@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,6 +14,20 @@ type UserError struct {
 
 func (e *UserError) Error() string {
 	return e.Msg
+}
+
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// SetVersion sets version information from main package
+func SetVersion(v, c, d string) {
+	version = v
+	commit = c
+	date = d
+	rootCmd.Version = fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date)
 }
 
 var rootCmd = &cobra.Command{

@@ -1,0 +1,115 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: brief
+    main: ./cmd/brief
+    binary: brief
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    # SQLite requires CGO, so we need to handle cross-compilation carefully
+    # For macOS, we'll build both architectures natively
+    # For Linux, we'll build amd64 with CGO
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: brief-archive
+    formats:
+      - tar.gz
+      - zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+
+brews:
+  - name: brief
+    # Repository for the Homebrew tap
+    repository:
+      owner: derek-byte
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    # Binary that will be installed
+    ids:
+      - brief-archive
+
+    # Folder inside the repository to put the formula
+    directory: Formula
+
+    # App details
+    homepage: https://github.com/derek-byte/coding-tools
+    description: "Local-first CLI for branch-scoped development notes and context"
+
+    # License
+    license: MIT
+
+    # Install configuration
+    install: |
+      bin.install "brief"
+
+    # Test to verify installation
+    test: |
+      system "#{bin}/brief", "--version"
+
+    # Additional configuration
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+    commit_msg_template: "brew: update {{ .ProjectName }} to {{ .Tag }}"
+
+# For macOS app bundle (cask) - optional, keeping brew formula for now
+# brews is simpler for CLI tools
+# casks:
+#   - name: brief
+#     repository:
+#       owner: derek-byte
+#       name: homebrew-tap
+#     homepage: https://github.com/derek-byte/coding-tools
+#     description: "Local-first CLI for branch-scoped development notes"

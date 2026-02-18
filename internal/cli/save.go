@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/store"
+	"github.com/derek-byte/coding-tools/internal/git"
+	"github.com/derek-byte/coding-tools/internal/store"
 	"github.com/spf13/cobra"
 )
 

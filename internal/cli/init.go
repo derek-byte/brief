@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/derek-byte/coding-tools/notetaker-dev/internal/git"
+	"github.com/derek-byte/coding-tools/internal/git"
 	"github.com/spf13/cobra"
 )
 
