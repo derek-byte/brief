@@ -30,8 +30,7 @@ brief rehydrate
 ## Installation
 
 ```bash
-brew tap derek-byte/tap
-brew install brief
+brew install derek-byte/tap/brief
 ```
 
 <details>
