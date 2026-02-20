@@ -1,0 +1,152 @@
+---
+title: Quick Start
+description: Learn Brief basics in 5 minutes.
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Your First Branch Context
+
+This guide walks you through Brief's core workflow.
+
+<Steps>
+
+### Navigate to a Git Repository
+
+```bash
+cd ~/my-project
+git checkout -b feature/user-auth
+```
+
+<Callout type="info">
+Brief automatically scopes context to your current branch. Each branch gets its own isolated context.
+</Callout>
+
+### Capture Your Work
+
+As you code, capture context on the fly:
+
+```bash
+# Set what you're working on
+brief goal "Implement JWT authentication"
+
+# Add todos
+brief todo "Add password hashing"
+brief todo "Write login endpoint tests"
+
+# Save useful commands
+brief cmd "npm run test:auth"
+brief cmd "docker compose up redis"
+
+# Document decisions
+brief decision "Using bcrypt for password hashing"
+
+# Quick notes
+brief "Rate limit: 5 attempts per minute"
+brief "Remember to update API docs"
+```
+
+### View Your Context
+
+See what you've captured:
+
+```bash
+# Compact overview
+brief summary
+
+# Full details
+brief rehydrate
+
+# Interactive TUI
+brief ui
+```
+
+### Switch Branches
+
+When you switch branches, your context switches too:
+
+```bash
+git checkout feature/payment-flow
+brief summary  # Shows payment-flow context (if any)
+
+git checkout feature/user-auth
+brief summary  # Back to your auth context
+```
+
+### Set Up Auto-Display (Optional)
+
+Install a git hook to automatically show context when switching branches:
+
+```bash
+brief init
+```
+
+Now `brief summary` runs automatically whenever you checkout a branch.
+
+</Steps>
+
+---
+
+## Common Workflows
+
+### Capture Context While Coding
+
+```bash
+# Quick notes (auto-detects type)
+brief "todo: Add error handling"       # Becomes a todo
+brief "cmd: npm run build"             # Becomes a command
+brief "https://jwt.io/introduction"    # Becomes a link
+
+# Or be explicit
+brief todo "Refactor auth middleware"
+brief cmd "curl -X POST localhost:3000/login"
+brief link "https://auth0.com/docs"
+```
+
+### Manage Your Work
+
+```bash
+# View context
+brief summary          # Quick overview
+brief rehydrate        # Full details
+brief ui               # Interactive mode
+
+# Clear when done
+brief clear            # Prompts for confirmation
+```
+
+### Branch-Aware Stashing
+
+```bash
+# Stash work for this branch
+brief save "WIP: halfway through login endpoint"
+
+# Switch branches, do other work
+git checkout hotfix/security-patch
+# ... fix and commit ...
+
+# Come back
+git checkout feature/user-auth
+brief restore          # Restores YOUR stash for this branch
+```
+
+<Callout type="warn">
+Brief tracks which stash belongs to which branch, so you never apply the wrong stash.
+</Callout>
+
+---
+
+## Next Steps
+
+<Cards>
+  <Card title="Commands Reference" href="/docs/commands">
+    Complete list of all commands
+  </Card>
+  <Card title="Interactive Mode" href="/docs/interactive-mode">
+    Learn TUI keyboard shortcuts
+  </Card>
+  <Card title="Git Hooks" href="/docs/git-hooks">
+    Auto-display context on branch switch
+  </Card>
+</Cards>

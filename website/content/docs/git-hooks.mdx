@@ -1,0 +1,303 @@
+---
+title: Git Hooks
+description: Automatic context display when switching branches.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+## Quick Start
+
+```bash
+cd ~/my-project
+brief init                    # Install hook
+git checkout other-branch     # Context displays automatically
+brief init --uninstall        # Remove hook
+```
+
+---
+
+## What Gets Installed
+
+Brief installs a `post-checkout` hook that runs automatically when you switch branches.
+
+### Default Mode
+
+```bash
+brief init
+```
+
+- Runs `brief summary --quiet` after branch checkout
+- Shows compact context overview
+- Errors suppressed (fails silently)
+
+### Full Mode
+
+```bash
+brief init --full
+```
+
+- Runs `brief rehydrate` after branch checkout
+- Shows complete context with all details
+- More verbose output
+
+---
+
+## How It Works
+
+<Steps>
+
+### Detection
+
+Brief checks `git config core.hooksPath` to determine where to install the hook.
+
+### Hook Location
+
+<Callout type="info">
+Brief respects your repository's hook configuration.
+</Callout>
+
+**Standard setup:**
+```
+.git/hooks/post-checkout
+```
+
+**Husky or custom hook directory:**
+```bash
+$ git config --get core.hooksPath
+.husky
+
+# Brief installs to .husky/post-checkout
+$ brief init
+✓ Installed branchbrief hook (summary mode)
+```
+
+### Appending (Not Overwriting)
+
+Brief appends to existing hooks rather than overwriting them:
+
+```bash
+#!/bin/sh
+# Your existing hook content...
+
+# >>> branchbrief auto-context >>>
+if [ "$3" = "1" ]; then
+  brief summary --quiet 2>/dev/null || true
+fi
+# <<< branchbrief auto-context <<<
+```
+
+The markers (`>>>` and `<<<`) allow clean removal with `--uninstall`.
+
+### Auto-Exclusion
+
+If the hook is in your working tree (e.g., `.husky/`), Brief automatically adds it to `.git/info/exclude` so it doesn't appear in `git status`.
+
+**Why `.git/info/exclude` instead of `.gitignore`?**
+- Personal ignore pattern (not shared with team)
+- Doesn't require committing changes
+- No git status clutter
+
+</Steps>
+
+---
+
+## Compatibility
+
+### ✅ Works With
+
+- Standard git hooks (`.git/hooks/`)
+- Husky (`.husky/`)
+- Custom `core.hooksPath` (relative or absolute paths)
+- Existing post-checkout hooks (appends, doesn't overwrite)
+
+### Requirements
+
+- Git 2.9+ (for `core.hooksPath` support)
+- `brief` binary in PATH
+- Git repository
+
+---
+
+## Troubleshooting
+
+### Hook Doesn't Run
+
+**Check installation:**
+```bash
+# Standard location
+ls -la .git/hooks/post-checkout
+
+# Or custom hooksPath
+git config --get core.hooksPath
+ls -la $(git config --get core.hooksPath)/post-checkout
+```
+
+**Check permissions:**
+```bash
+# Hook must be executable
+chmod +x .git/hooks/post-checkout
+```
+
+**Test manually:**
+```bash
+# Run the hook directly
+.git/hooks/post-checkout HEAD HEAD 1
+# Should display brief summary
+```
+
+### Hook Shows Errors
+
+Brief suppresses errors by default (`2>/dev/null || true`), but you can debug:
+
+```bash
+# Remove error suppression temporarily
+vim .git/hooks/post-checkout
+
+# Change:
+#   brief summary --quiet 2>/dev/null || true
+# To:
+#   brief summary --quiet
+```
+
+### Hook Appears in Git Status
+
+If the hook file shows as untracked:
+
+1. **Verify auto-exclusion:**
+   ```bash
+   cat .git/info/exclude
+   # Should contain: .husky/post-checkout (or your hook path)
+   ```
+
+2. **Manually exclude if needed:**
+   ```bash
+   echo ".husky/post-checkout" >> .git/info/exclude
+   ```
+
+---
+
+## Advanced Configuration
+
+### Custom Hook Command
+
+Edit the installed hook to customize behavior:
+
+```bash
+vim .git/hooks/post-checkout
+```
+
+**Use full rehydrate:**
+```bash
+if [ "$3" = "1" ]; then
+  brief rehydrate 2>/dev/null || true
+fi
+```
+
+**Show timeline view:**
+```bash
+if [ "$3" = "1" ]; then
+  brief rehydrate --view timeline 2>/dev/null || true
+fi
+```
+
+**Custom limit:**
+```bash
+if [ "$3" = "1" ]; then
+  brief rehydrate --limit 20 2>/dev/null || true
+fi
+```
+
+### Conditional Execution
+
+Only run hook in specific repos:
+
+```bash
+if [ "$3" = "1" ] && [ "$(git config --get remote.origin.url)" = "git@github.com:user/specific-repo.git" ]; then
+  brief summary --quiet 2>/dev/null || true
+fi
+```
+
+Only run in work directory:
+
+```bash
+if [ "$3" = "1" ] && [[ "$PWD" == "/Users/you/work/"* ]]; then
+  brief summary --quiet 2>/dev/null || true
+fi
+```
+
+---
+
+## Hook Behavior
+
+### When Hook Runs
+
+The post-checkout hook runs after:
+- `git checkout <branch>`
+- `git switch <branch>`
+- `git clone <repo>` (initial checkout)
+
+### When Hook Doesn't Run
+
+The hook does NOT run for:
+- `git checkout <file>` (file checkout, not branch switch)
+- `git checkout -b <new-branch>` (new branch from current - no context yet)
+- Detached HEAD checkouts
+
+### The `$3` Check
+
+```bash
+if [ "$3" = "1" ]; then
+```
+
+Git's post-checkout hook receives 3 arguments:
+1. `$1` — Previous HEAD ref
+2. `$2` — New HEAD ref
+3. `$3` — Flag: `1` = branch checkout, `0` = file checkout
+
+Brief only runs on branch checkouts (`$3 = 1`).
+
+---
+
+## Uninstalling
+
+```bash
+brief init --uninstall
+```
+
+This removes the Brief block from the hook file. If the file becomes empty or contains only the shebang, it's deleted entirely.
+
+**Manual removal:**
+```bash
+# Edit the hook
+vim .git/hooks/post-checkout
+
+# Delete the block between these markers:
+# >>> branchbrief auto-context >>>
+# <<< branchbrief auto-context <<<
+```
+
+---
+
+## Security Considerations
+
+<Callout type="warn">
+Git hooks run arbitrary shell commands. Always review hook content before installing.
+</Callout>
+
+**Hook execution:**
+- Git hooks run arbitrary shell commands
+- Review hook content: `cat .git/hooks/post-checkout`
+- Brief hooks are safe (only runs `brief summary`, no network/file system access)
+
+**Hook sources:**
+- Hooks in `.git/hooks/` are local-only (not tracked by git)
+- Hooks in custom directories (e.g., `.husky/`) may be committed
+- Review committed hooks in repositories you clone
+
+---
+
+## Further Reading
+
+- [Git Hooks Documentation](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks)
+- [Husky Documentation](https://typicode.github.io/husky/)

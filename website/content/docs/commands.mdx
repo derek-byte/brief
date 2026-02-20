@@ -1,0 +1,270 @@
+---
+title: Commands Reference
+description: Complete reference for all Brief commands.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Complete reference for all Brief commands.
+
+---
+
+## Capturing Context
+
+### Quick Capture
+
+The fastest way to save context:
+
+```bash
+brief "<text>"
+```
+
+<Callout type="info">
+Brief auto-detects the type based on content. Prefix with `todo:`, `cmd:`, etc. for explicit types.
+</Callout>
+
+**Auto-detection examples:**
+```bash
+brief "Remember to test edge cases"           # Note
+brief "todo: Write unit tests"                 # Todo
+brief "cmd: npm run build"                     # Command
+brief "https://example.com/docs"               # Link
+```
+
+### Explicit Capture
+
+Specify the type explicitly:
+
+<Tabs items={['Todo', 'Decision', 'Command', 'Note', 'Link', 'Issue', 'Error', 'Fix']}>
+  <Tab value="Todo">
+    ```bash
+    brief todo "Update API documentation"
+    brief todo "Fix login bug"
+    brief todo "Add password reset flow"
+    ```
+
+    Todos appear in the Interactive TUI and can be toggled as complete.
+  </Tab>
+
+  <Tab value="Decision">
+    ```bash
+    brief decision "Use JWT for authentication"
+    brief decision "Switch to Vite from Webpack"
+    brief decision "PostgreSQL for primary database"
+    ```
+
+    Document technical decisions and rationale.
+  </Tab>
+
+  <Tab value="Command">
+    ```bash
+    brief cmd "npm run test:e2e"
+    brief cmd "docker compose up -d"
+    brief cmd "curl -X POST localhost:3000/api/login"
+    ```
+
+    Save commands for later execution. Press Enter in TUI to run them.
+  </Tab>
+
+  <Tab value="Note">
+    ```bash
+    brief note "API rate limit is 100 req/min"
+    brief note "Redis running on port 6379"
+    brief note "JWT secret in .env.local"
+    ```
+
+    General notes and reminders.
+  </Tab>
+
+  <Tab value="Link">
+    ```bash
+    brief link "https://docs.example.com/auth"
+    brief link "https://github.com/user/repo/issues/123"
+    ```
+
+    Save reference links and documentation.
+  </Tab>
+
+  <Tab value="Issue">
+    ```bash
+    brief issue "#123 - Login timeout bug"
+    brief issue "JIRA-456: Implement OAuth"
+    ```
+
+    Reference issue tracker items.
+  </Tab>
+
+  <Tab value="Error">
+    ```bash
+    brief error "NullPointerException in getUserData()"
+    brief error "CORS error on /api/auth endpoint"
+    ```
+
+    Document errors and bugs you encounter.
+  </Tab>
+
+  <Tab value="Fix">
+    ```bash
+    brief fix "Added null check in getUserData()"
+    brief fix "Updated CORS headers in middleware"
+    ```
+
+    Document fixes and workarounds.
+  </Tab>
+</Tabs>
+
+---
+
+## Viewing Context
+
+### Summary
+
+Compact overview of your current branch:
+
+```bash
+brief summary                 # Standard view
+brief summary --quiet         # Minimal output (useful in hooks)
+```
+
+### Rehydrate
+
+Full context view with all details:
+
+```bash
+brief rehydrate                         # Structured view (default)
+brief rehydrate --view structured       # Group by type
+brief rehydrate --view timeline         # Chronological order
+brief rehydrate --limit 50              # Limit entries shown
+```
+
+**View modes:**
+- **Structured**: Groups entries by type (todos, decisions, notes, etc.)
+- **Timeline**: Shows entries in chronological order (newest first)
+
+### Interactive TUI
+
+Launch the interactive terminal UI:
+
+```bash
+brief ui
+```
+
+See [Interactive Mode](/docs/interactive-mode) for keyboard shortcuts and features.
+
+---
+
+## Stash Management
+
+Brief provides branch-aware git stash management.
+
+### Save
+
+Stash work for the current branch:
+
+```bash
+brief save                              # Auto-generated message
+brief save "WIP: OAuth integration"     # Custom message
+```
+
+<Callout type="info">
+Brief tracks which stash belongs to which branch, preventing accidental stash application.
+</Callout>
+
+### Restore
+
+Restore stashed work for the current branch:
+
+```bash
+brief restore
+```
+
+Only restores stashes created on the current branch.
+
+### List Stashes
+
+View all stashes across branches:
+
+```bash
+brief stashes
+```
+
+Shows which branch each stash belongs to.
+
+---
+
+## Branch Management
+
+### Clear Context
+
+Clear all context for the current branch:
+
+```bash
+brief clear                   # Prompts for confirmation
+brief clear --force           # Skip confirmation
+```
+
+<Callout type="warn">
+This permanently deletes all entries for the current branch. Use with caution.
+</Callout>
+
+---
+
+## Git Hooks
+
+### Install Hook
+
+Install a post-checkout hook for automatic context display:
+
+```bash
+brief init                    # Summary mode
+brief init --full             # Full rehydrate mode
+brief init --uninstall        # Remove hook
+```
+
+After installation, `brief summary` runs automatically when you switch branches.
+
+See [Git Hooks Guide](/docs/git-hooks) for details.
+
+---
+
+## Advanced
+
+### Add Command
+
+Add entries with explicit type specification:
+
+```bash
+brief add note "Custom note text"
+brief add todo "Custom todo"
+brief add error "Build failed" --from-stdin < error.log
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `EDITOR` | Editor for TUI edit mode (`e` key) |
+| `BRIEF_DEBUG` | Enable debug logging (set to `1`) |
+
+---
+
+## Files
+
+| Path | Description |
+|------|-------------|
+| `~/Library/Application Support/branchbrief/branchbrief.sqlite` | Local SQLite database |
+| `.git/hooks/post-checkout` | Git hook (if installed) |
+| `.git/info/exclude` | Hook exclusion pattern |
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | User error (bad arguments, invalid input) |
+| `2` | Runtime error (database failure, git error) |

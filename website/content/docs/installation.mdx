@@ -1,0 +1,87 @@
+---
+title: Installation
+description: Install Brief on macOS, Linux, or Windows.
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+## Install Brief
+
+<Tabs items={['macOS', 'Linux', 'Windows', 'From Source']}>
+  <Tab value="macOS">
+    ### Homebrew (Recommended)
+
+    ```bash
+    brew install derek-byte/tap/brief
+    ```
+
+    ### Verify Installation
+
+    ```bash
+    brief --version
+    ```
+  </Tab>
+
+  <Tab value="Linux">
+    ### Download Binary
+
+    Download the latest release for your architecture:
+
+    ```bash
+    # AMD64
+    curl -LO https://github.com/derek-byte/brief/releases/latest/download/brief_Linux_x86_64.tar.gz
+    tar -xzf brief_Linux_x86_64.tar.gz
+    sudo mv brief /usr/local/bin/
+
+    # ARM64
+    curl -LO https://github.com/derek-byte/brief/releases/latest/download/brief_Linux_arm64.tar.gz
+    tar -xzf brief_Linux_arm64.tar.gz
+    sudo mv brief /usr/local/bin/
+    ```
+
+    ### Verify Installation
+
+    ```bash
+    brief --version
+    ```
+  </Tab>
+
+  <Tab value="Windows">
+    ### Download Binary
+
+    1. Download the [latest Windows release](https://github.com/derek-byte/brief/releases/latest)
+    2. Extract `brief.exe`
+    3. Add to your PATH
+
+    ### Verify Installation
+
+    ```powershell
+    brief --version
+    ```
+  </Tab>
+
+  <Tab value="From Source">
+    ### Prerequisites
+
+    - Go 1.21 or later
+
+    ### Install
+
+    ```bash
+    go install github.com/derek-byte/brief/cmd/brief@latest
+    ```
+
+    ### Verify Installation
+
+    ```bash
+    brief --version
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+Now that Brief is installed, learn the basics:
+
+- [Quick Start Guide](/docs/quick-start)
+- [Command Reference](/docs/commands)

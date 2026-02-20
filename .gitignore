@@ -4,3 +4,10 @@
 .idea/
 dist/
 brief
+
+# Website
+website/.next/
+website/node_modules/
+website/.turbo/
+website/out/
+website/.fumadocs/

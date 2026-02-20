@@ -1,0 +1,209 @@
+---
+title: Interactive Mode
+description: Terminal UI with vim-like keybindings for browsing and managing context.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Overview
+
+Brief's interactive TUI provides a powerful interface for browsing, filtering, and managing your context.
+
+```bash
+brief ui
+```
+
+<Callout type="info">
+The TUI uses vim-like keybindings for navigation and supports full keyboard control.
+</Callout>
+
+---
+
+## Navigation
+
+### Basic Movement
+
+| Key | Action |
+|-----|--------|
+| `j` or `↓` | Move cursor down |
+| `k` or `↑` | Move cursor up |
+| `g` | Jump to top |
+| `G` | Jump to bottom |
+| `q` | Quit |
+
+### View Control
+
+| Key | Action |
+|-----|--------|
+| `v` | Toggle view mode (wide ↔ compact) |
+| `?` | Toggle help overlay |
+
+---
+
+## Actions
+
+### Context-Dependent Actions
+
+Press `Enter` on any item:
+
+| Item Type | Action |
+|-----------|--------|
+| **Todo** | Toggle completion status |
+| **Command** | Exit TUI and execute command |
+| **Note/Decision/Fix** | Show detail view |
+| **Link** | Display full URL |
+
+### Editing
+
+| Key | Action |
+|-----|--------|
+| `e` | Edit current item in `$EDITOR` |
+| `d` | Soft delete current item |
+| `u` | Undo last delete |
+
+<Callout type="info">
+Set your preferred editor with `export EDITOR=vim` (or `nano`, `code`, etc.)
+</Callout>
+
+---
+
+## Filtering & Search
+
+### Enter Filter Mode
+
+Press `/` to enter filter mode.
+
+### In Filter Mode
+
+| Key | Action |
+|-----|--------|
+| Type text | Filter entries (case-insensitive) |
+| `Enter` | Keep filter active, return to navigation |
+| `ESC` | Clear filter, return to navigation |
+
+**What you can filter:**
+- Entry text content
+- Entry type (todo, note, command, etc.)
+- Any combination
+
+**Examples:**
+- Type `login` → Shows all entries containing "login"
+- Type `todo` → Shows only todo items
+- Type `error npm` → Shows errors mentioning npm
+
+---
+
+## View Modes
+
+Toggle between view modes with `v`:
+
+### Wide View
+
+```
+Todos
+  ✓ Add password hashing
+  ○ Write login endpoint tests
+
+Decisions
+  → Using bcrypt for password hashing
+  → JWT tokens expire after 24h
+
+Commands
+  $ npm run test:auth
+  $ docker compose up redis
+```
+
+- Entries grouped by type
+- Visual separators
+- Easy scanning
+
+### Compact View
+
+```
+18:42  todo     Add password hashing                  ✓
+18:40  decision Using bcrypt for password hashing
+18:38  cmd      npm run test:auth
+18:35  todo     Write login endpoint tests            ○
+```
+
+- Chronological timeline (newest first)
+- Compact, information-dense
+- Shows timestamps
+
+---
+
+## Workflow Examples
+
+### Review and Complete Todos
+
+1. Launch TUI: `brief ui`
+2. Navigate to a todo with `j`/`k`
+3. Press `Enter` to toggle completion
+4. Press `q` to quit
+
+### Find and Execute Commands
+
+1. Launch TUI: `brief ui`
+2. Press `/` and type `docker`
+3. Navigate to the command you want
+4. Press `Enter` to execute
+5. TUI exits and command runs
+
+### Edit Notes
+
+1. Launch TUI: `brief ui`
+2. Navigate to the entry
+3. Press `e` to edit in your `$EDITOR`
+4. Save and quit editor
+5. Changes reflected immediately
+
+### Clean Up Old Entries
+
+1. Launch TUI: `brief ui`
+2. Navigate to unwanted entries
+3. Press `d` to delete
+4. Press `u` if you made a mistake
+5. Deletions persist when you quit
+
+---
+
+## Tips & Tricks
+
+### Keyboard-First Workflow
+
+The TUI is designed for keyboard efficiency:
+- No mouse needed
+- Vim-like navigation
+- Fast filtering
+
+### View Mode Preference
+
+Choose the view that fits your workflow:
+- **Wide** for reviewing grouped context
+- **Compact** for quick scanning
+
+### Filter + Navigate
+
+Combine filtering and navigation:
+1. Press `/` and filter for relevant entries
+2. Press `Enter` to keep filter
+3. Navigate with `j`/`k`
+4. Take actions on filtered results
+
+### Quick Command Execution
+
+The fastest way to run a saved command:
+1. `brief ui`
+2. `/` + type command keyword
+3. `Enter` on the command
+4. Command executes immediately
+
+---
+
+## Help Overlay
+
+Press `?` in the TUI to show/hide the help overlay with all keyboard shortcuts.
+
+<Callout type="info">
+The help overlay is context-sensitive and shows available actions for the current view.
+</Callout>
