@@ -4,14 +4,7 @@ Complete reference for all Brief commands.
 
 ## Context Management
 
-### `brief goal`
-Set or view the branch objective.
-
-```bash
-brief goal "Implement user authentication"  # Set goal
-brief goal                                   # View current goal
-brief goal --edit                            # Edit in $EDITOR
-```
+The branch name serves as your context header - name your branches descriptively!
 
 ### `brief "<text>"`
 Quick note capture (catch-all command).
@@ -221,7 +214,7 @@ Launch with `brief ui`.
 
 ## Environment Variables
 
-- `EDITOR` — Editor for `brief goal --edit` and TUI edit mode
+- `EDITOR` — Editor for TUI edit mode (`e` key)
 - `BRIEF_DEBUG` — Enable debug logging (set to `1`)
 
 ---

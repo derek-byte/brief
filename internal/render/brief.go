@@ -16,7 +16,6 @@ type Brief struct {
 	LastUpdated time.Time
 	GitState    git.GitState
 	Events      []store.Event
-	CurrentGoal *store.Event // Single goal per branch (nil if no goal)
 }
 
 // RenderBrief formats a branch brief for terminal output
@@ -44,13 +43,6 @@ func RenderBrief(b Brief) string {
 		lastCommit,
 		stateInfo,
 	))
-
-	// Goal inline (single line)
-	if b.CurrentGoal != nil {
-		text := truncateLine(b.CurrentGoal.Text, 160)
-		out.WriteString(fmt.Sprintf("Goal: %s\n", text))
-	}
-
 	out.WriteString("\n")
 
 	eventsByType := groupEventsByType(b.Events)
@@ -91,7 +83,7 @@ func RenderBrief(b Brief) string {
 	}
 
 	// Show message if no events
-	if len(b.Events) == 0 && b.CurrentGoal == nil {
+	if len(b.Events) == 0 {
 		out.WriteString("No notes yet for this branch\n")
 	}
 
@@ -257,16 +249,7 @@ func RenderTimeline(b Brief) string {
 
 	var entries []timelineEntry
 
-	// Add current goal if exists
-	if b.CurrentGoal != nil {
-		entries = append(entries, timelineEntry{
-			timestamp: b.CurrentGoal.CreatedAt,
-			eventType: "goal",
-			text:      b.CurrentGoal.Text,
-		})
-	}
-
-	// Add all other events (skip goal type - handled separately as CurrentGoal)
+	// Add all events (skip goal type - not shown)
 	for _, event := range b.Events {
 		if event.Type == "goal" {
 			continue

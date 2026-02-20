@@ -80,7 +80,6 @@ var noteCmd = &cobra.Command{
 
 func init() {
 	// Register all shorthand aliases
-	// Note: 'goal' has a dedicated command in goal.go (single goal per branch)
 	rootCmd.AddCommand(todoCmd)
 	rootCmd.AddCommand(cmdCmd)
 	rootCmd.AddCommand(fixCmd)

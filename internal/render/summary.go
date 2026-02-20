@@ -24,11 +24,10 @@ func RenderSummary(b Brief) string {
 	out.WriteString(separator)
 	out.WriteString("\n\n")
 
-	// Goal (if exists) - bold, no prefix
-	if b.CurrentGoal != nil {
-		text := truncateLine(b.CurrentGoal.Text, width)
+	// Branch name as context header - bold
+	if b.Branch != "" {
 		boldStyle := lipgloss.NewStyle().Bold(true)
-		out.WriteString(boldStyle.Render(text))
+		out.WriteString(boldStyle.Render(b.Branch))
 		out.WriteString("\n\n")
 	}
 

@@ -22,10 +22,9 @@ var addCmd = &cobra.Command{
 	Long: `Add a branch-scoped note of the specified type.
 
 Valid types:
-  goal, choice, todo, cmd, note, fix
+  choice, todo, cmd, note, fix
 
 Examples:
-  brief add goal "Implement user authentication"
   brief add choice "Use JWT tokens for sessions"
   brief add todo "Write unit tests"
   brief add cmd "make test"`,
@@ -76,7 +75,7 @@ func addEvent(eventType, text string) error {
 	// Validate type against allowlist
 	if !isValidType(eventType) {
 		return &UserError{
-			Msg: fmt.Sprintf("invalid type: %s (valid types: goal, choice, todo, cmd, note, fix)", eventType),
+			Msg: fmt.Sprintf("invalid type: %s (valid types: choice, todo, cmd, note, fix)", eventType),
 		}
 	}
 
@@ -138,7 +137,6 @@ func normalizeType(t string) string {
 // isValidType checks if the event type is in the allowlist
 func isValidType(t string) bool {
 	valid := map[string]bool{
-		"goal":   true,
 		"choice": true,
 		"todo":   true,
 		"cmd":    true,

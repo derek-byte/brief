@@ -32,7 +32,6 @@ const (
 // Model is the Bubble Tea model for the TUI
 type Model struct {
 	items          []Item
-	goal           *Item  // Single goal displayed as header
 	cursor         int
 	format         ViewFormat
 	mode           Mode
@@ -64,7 +63,7 @@ type Item struct {
 
 // NewModel creates a new TUI model with the given events
 func NewModel(events []store.Event, branch, repoID, repoRoot string, db *sql.DB) Model {
-	items, goal := buildItems(events)
+	items := buildItems(events)
 
 	// Sort items to match wide format display order initially
 	// (grouped by type in priority order, then by timestamp within each type)
@@ -73,7 +72,6 @@ func NewModel(events []store.Event, branch, repoID, repoRoot string, db *sql.DB)
 	return Model{
 		items:     items,
 		allItems:  items, // Keep unfiltered copy
-		goal:      goal,
 		cursor:    0,
 		format:    FormatWide,
 		mode:      ModeNormal,
@@ -254,8 +252,10 @@ func (m Model) View() string {
 	var out strings.Builder
 
 	// Render goal as bold header if present
-	if m.goal != nil {
-		out.WriteString(m.renderGoalHeader())
+	// Show branch name as header
+	if m.branch != "" {
+		branchStyle := lipgloss.NewStyle().Bold(true)
+		out.WriteString(branchStyle.Render(m.branch))
 		out.WriteString("\n\n")
 	}
 
@@ -277,12 +277,6 @@ func (m Model) View() string {
 	}
 
 	return out.String()
-}
-
-// renderGoalHeader renders the goal as a bold header
-func (m Model) renderGoalHeader() string {
-	goalStyle := lipgloss.NewStyle().Bold(true)
-	return goalStyle.Render("Goal: " + m.goal.DisplayText)
 }
 
 // renderStatusLine shows current mode and hints
@@ -368,27 +362,12 @@ func (m Model) renderDetailView() string {
 }
 
 // buildItems converts events into displayable items with formatting
-// Returns items list and optional goal (displayed separately as header)
-func buildItems(events []store.Event) ([]Item, *Item) {
+func buildItems(events []store.Event) []Item {
 	var items []Item
-	var goal *Item
 
 	for _, e := range events {
-		// Skip stash type (not shown in UI list)
-		if e.Type == "stash" {
-			continue
-		}
-
-		// For goals, keep only the most recent one (displayed as header)
-		if e.Type == "goal" {
-			if goal == nil || e.CreatedAt > goal.Event.CreatedAt {
-				goalItem := Item{
-					Event:       e,
-					DisplayText: e.Text,
-					TypeLabel:   getDisplayLabel(e.Type),
-				}
-				goal = &goalItem
-			}
+		// Skip stash and goal types (not shown in UI list)
+		if e.Type == "stash" || e.Type == "goal" {
 			continue
 		}
 
@@ -413,7 +392,7 @@ func buildItems(events []store.Event) ([]Item, *Item) {
 		items = append(items, item)
 	}
 
-	return items, goal
+	return items
 }
 
 // formatTimestamp formats Unix timestamp for display
@@ -590,7 +569,7 @@ func (m Model) handleUndo() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	items, goal := buildItems(events)
+	items := buildItems(events)
 
 	// Re-sort based on current format
 	if m.format == FormatWide {
@@ -602,7 +581,6 @@ func (m Model) handleUndo() (tea.Model, tea.Cmd) {
 	// Update model
 	m.allItems = items
 	m.items = items
-	m.goal = goal
 	m.lastDeletedID = ""
 
 	// Apply filter if active

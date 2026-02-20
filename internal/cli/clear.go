@@ -12,7 +12,7 @@ var clearCmd = &cobra.Command{
 	Use:     "clear",
 	Short:   "Clear all notes for this branch",
 	GroupID: "branch",
-	Long: `Delete all notes (todos, choices, commands, notes, goal) for the current branch.
+	Long: `Delete all notes (todos, choices, commands, notes) for the current branch.
 This is irreversible. Use with caution.
 
 Examples:
@@ -55,16 +55,7 @@ func runClear(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Check for goal
-	goal, err := store.GetGoal(db, repoID, branch)
-	if err != nil {
-		return err
-	}
-
 	totalItems := len(events)
-	if goal != nil {
-		totalItems++
-	}
 
 	if totalItems == 0 {
 		fmt.Printf("No notes to clear on branch '%s'\n", branch)

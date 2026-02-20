@@ -17,7 +17,7 @@ var summaryCmd = &cobra.Command{
 	Short:   "Show compact grid summary of branch context",
 	GroupID: "branch",
 	Long: `Display a compact grid-based summary of branch context.
-Shows goal and top items in a terminal-width-aware layout.
+Shows branch name and top items in a terminal-width-aware layout.
 Silent if branch has no notes.`,
 	RunE: runSummary,
 }
@@ -54,14 +54,8 @@ func runSummary(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get current goal
-	goal, err := store.GetGoal(db, repoID, branch)
-	if err != nil {
-		return err
-	}
-
-	// If no events and no goal, exit silently
-	if len(events) == 0 && goal == nil {
+	// If no events, exit silently
+	if len(events) == 0 {
 		if !summaryQuiet {
 			fmt.Println("No notes for this branch yet")
 		}
@@ -73,7 +67,6 @@ func runSummary(cmd *cobra.Command, args []string) error {
 		Branch:      branch,
 		LastUpdated: time.Now(),
 		Events:      events,
-		CurrentGoal: goal,
 	}
 
 	// Render summary

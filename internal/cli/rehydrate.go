@@ -18,7 +18,7 @@ var rehydrateCmd = &cobra.Command{
 	Short:   "Display a concise brief of the current branch context",
 	GroupID: "branch",
 	Long: `Print a structured summary of your branch's development context,
-including goals, choices, todos, and git state. Designed to get
+including choices, todos, and git state. Designed to get
 you oriented in under 60 seconds.`,
 	RunE: runRehydrate,
 }
@@ -56,12 +56,6 @@ func runRehydrate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get current goal separately (single goal per branch)
-	currentGoal, err := store.GetGoal(db, repoID, branch)
-	if err != nil {
-		return err
-	}
-
 	// Get git state
 	gitState := git.GetGitState(repoRoot)
 
@@ -79,7 +73,6 @@ func runRehydrate(cmd *cobra.Command, args []string) error {
 		LastUpdated: lastUpdated,
 		GitState:    gitState,
 		Events:      events,
-		CurrentGoal: currentGoal,
 	}
 
 	// Render based on view mode

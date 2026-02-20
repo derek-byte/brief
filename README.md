@@ -35,10 +35,10 @@ Brief captures development context as you work and restores it when you return. 
 Every branch gets its own context. Everything stays private on your machine.
 
 ```bash
-# Capture context
-brief goal "Add OAuth authentication"
+# Capture context while working
 brief "Remember to test error handling"
 brief todo "Update API documentation"
+brief decision "Use JWT for auth tokens"
 
 # Switch branches
 git checkout feature/new-ui
@@ -46,7 +46,7 @@ git checkout feature/new-ui
 # Come back later
 git checkout feature/oauth
 brief rehydrate
-# → Shows everything you captured, right where you left off
+# → Shows everything you captured, branch name as context
 ```
 
 ---
@@ -56,13 +56,11 @@ brief rehydrate
 ```bash
 cd ~/my-project
 
-# Set your branch goal
-brief goal "Implement user authentication"
-
 # Capture notes as you work
 brief "Check rate limiting on login endpoint"
 brief todo "Add password reset flow"
 brief cmd "npm run test:auth"
+brief decision "Use bcrypt for password hashing"
 
 # View your context
 brief summary
@@ -85,10 +83,10 @@ brief ui
 **Capture context:**
 ```bash
 brief "<text>"              # Quick note
-brief goal "<text>"         # Set branch objective
 brief todo "<text>"         # Add actionable item
 brief decision "<text>"     # Document technical choice
 brief cmd "<text>"          # Save useful command
+brief note "<text>"         # General note
 ```
 
 **View & manage:**
