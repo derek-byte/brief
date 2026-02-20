@@ -17,7 +17,7 @@ type ViewFormat int
 
 const (
 	FormatWide    ViewFormat = iota // Format A: grouped with wide labels
-	FormatCompact                    // Format B: continuous with compact labels
+	FormatCompact                   // Format B: continuous with compact labels
 )
 
 // Mode determines the current UI mode
@@ -70,17 +70,17 @@ func NewModel(events []store.Event, branch, repoID, repoRoot string, db *sql.DB)
 	sortItemsForWideFormat(items)
 
 	return Model{
-		items:     items,
-		allItems:  items, // Keep unfiltered copy
-		cursor:    0,
-		format:    FormatWide,
-		mode:      ModeNormal,
-		showTime:  false, // Off by default, but toggleable
-		showHelp:  false,
-		branch:    branch,
-		repoID:    repoID,
-		repoRoot:  repoRoot,
-		db:        db,
+		items:    items,
+		allItems: items, // Keep unfiltered copy
+		cursor:   0,
+		format:   FormatWide,
+		mode:     ModeNormal,
+		showTime: false, // Off by default, but toggleable
+		showHelp: false,
+		branch:   branch,
+		repoID:   repoID,
+		repoRoot: repoRoot,
+		db:       db,
 	}
 }
 

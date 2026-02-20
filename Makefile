@@ -28,6 +28,16 @@ test: ## Run all tests
 test-golden-update: ## Update golden test files
 	@UPDATE_GOLDEN=1 go test ./internal/render/...
 
+fmt: ## Format all Go files
+	@gofmt -w .
+
+lint: ## Run golangci-lint
+	@golangci-lint run ./...
+
+check: fmt ## Run format, tests, and linter
+	@go test ./...
+	@golangci-lint run ./...
+
 tag: ## Calculate next version from commits and create git tag
 	@echo "Calculating next semantic version..."
 	@if ! command -v svu &> /dev/null; then \

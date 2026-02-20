@@ -143,8 +143,3 @@ func (m Model) isItemSelected(item Item) bool {
 	}
 	return m.items[m.cursor].Event.ID == item.Event.ID
 }
-
-// getCompactLabel returns the compact version of a type label (currently unused)
-func getCompactLabel(eventType string) string {
-	return eventType // All types use full labels now
-}

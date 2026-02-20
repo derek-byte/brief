@@ -201,7 +201,7 @@ func renderNotesStacked(notes []store.Event, maxItems int) string {
 		if count >= maxItems {
 			break
 		}
-		text := truncateLine(note.Text, 68) // Account for indent
+		text := truncateLine(note.Text, 68)            // Account for indent
 		out.WriteString(fmt.Sprintf("  • %s\n", text)) // 2-space indent
 		count++
 	}
@@ -278,7 +278,7 @@ func formatColumn(events []store.Event, eventType string, maxItems, width int) [
 			bullet = "☐" // Always incomplete now
 		}
 
-		text := truncateLine(e.Text, width-5) // Account for indent + bullet
+		text := truncateLine(e.Text, width-5)        // Account for indent + bullet
 		line := fmt.Sprintf("  %s %s", bullet, text) // 2-space indent
 		lines = append(lines, padRight(line, width))
 		count++

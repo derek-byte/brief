@@ -90,34 +90,6 @@ func RenderBrief(b Brief) string {
 	return out.String()
 }
 
-// buildCountsString creates the " · 2 todos · 1 cmd" suffix
-func buildCountsString(eventsByType map[string][]store.Event, currentGoal *store.Event) string {
-	var parts []string
-
-	// Count current goal as 1 if exists
-	if currentGoal != nil {
-		parts = append(parts, "1 goal")
-	}
-
-	// Order: choice, todo, cmd, fix, note
-	order := []string{"choice", "todo", "cmd", "fix", "note"}
-	for _, t := range order {
-		if events, ok := eventsByType[t]; ok && len(events) > 0 {
-			count := len(events)
-			label := t
-			if count != 1 {
-				label += "s"
-			}
-			parts = append(parts, fmt.Sprintf("%d %s", count, label))
-		}
-	}
-
-	if len(parts) == 0 {
-		return ""
-	}
-	return " · " + strings.Join(parts, " · ")
-}
-
 // groupEventsByType organizes events by their type
 func groupEventsByType(events []store.Event) map[string][]store.Event {
 	groups := make(map[string][]store.Event)
