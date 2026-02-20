@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -65,6 +66,14 @@ func RenderSummary(b Brief) string {
 
 // getTerminalWidth returns terminal width, defaulting to 80
 func getTerminalWidth() int {
+	// Check TERMINAL_WIDTH env var first (for testing)
+	if w := os.Getenv("TERMINAL_WIDTH"); w != "" {
+		if width, err := strconv.Atoi(w); err == nil && width > 0 {
+			return width
+		}
+	}
+
+	// Production: read from terminal
 	fd := int(os.Stdout.Fd())
 	if width, _, err := term.GetSize(fd); err == nil && width > 0 {
 		return width

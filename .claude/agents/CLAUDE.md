@@ -162,10 +162,58 @@ go build -o brief ./cmd/brief
 
 # Install to ~/bin for testing
 go build -o ~/bin/brief ./cmd/brief
-
-# Run tests
-go test ./...
 ```
+
+### Testing
+
+The project has minimal, high-signal spec tests that validate behavior contracts:
+
+**Test Suite:**
+- **Store layer tests** (`internal/store/db_test.go`): 5 tests covering branch isolation, soft deletes, todo toggling, goal upserts, and undo
+- **Render layer tests** (`internal/render/summary_test.go`): 3 golden tests for terminal widths (110/80/60) + 1 truncation test
+
+**Running tests:**
+```bash
+# Run all tests
+go test ./...
+
+# Run with verbose output
+go test -v ./...
+
+# Run only store tests
+go test ./internal/store
+
+# Run only render tests
+go test ./internal/render
+```
+
+**Golden file workflow:**
+
+Golden tests capture rendering output at different terminal widths to catch layout regressions.
+
+```bash
+# Update golden files after intentional rendering changes
+make test-golden-update
+
+# Or manually:
+UPDATE_GOLDEN=1 go test ./internal/render
+```
+
+**Golden files location:** `internal/render/testdata/*.golden`
+
+**CI/CD:**
+
+Tests run automatically on:
+- Every push to `main`
+- Every pull request to `main`
+
+**Workflow:** `.github/workflows/test.yml`
+
+The CI runs:
+1. `go test ./...` - All tests must pass
+2. `golangci-lint` - Code quality checks
+
+CI must pass before merging to `main` (no PR review required for solo development).
 
 ### Git Hooks Integration
 

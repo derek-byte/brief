@@ -25,6 +25,9 @@ test: ## Run all tests
 	@echo "Running tests..."
 	@go test ./...
 
+test-golden-update: ## Update golden test files
+	@UPDATE_GOLDEN=1 go test ./internal/render/...
+
 tag: ## Calculate next version from commits and create git tag
 	@echo "Calculating next semantic version..."
 	@if ! command -v svu &> /dev/null; then \

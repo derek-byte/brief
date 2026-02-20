@@ -36,7 +36,12 @@ func OpenDB() (*sql.DB, error) {
 	}
 
 	dbPath := filepath.Join(appDir, "branchbrief.sqlite")
-	db, err := sql.Open("sqlite", dbPath)
+	return OpenDBAt(dbPath)
+}
+
+// OpenDBAt opens or creates the SQLite database at the specified path
+func OpenDBAt(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

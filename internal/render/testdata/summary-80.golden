@@ -1,0 +1,12 @@
+────────────────────────────────────────────────────────────────────────────────
+
+feature/payment-retry
+
+Todos (Incomplete)                      Choices                               
+  ☐ Update documentation                  • Use Redis for rate limiting       
+  ☐ Test edge cases for network ti...     • Circuit breaker pattern for ex... 
+  ☐ Add exponential backoff                                                   
+
+Notes
+  • API docs at docs.stripe.com/payments/retries
+  • Max retry count should be configurable
