@@ -16,32 +16,70 @@ BranchBrief (`brief`) is a local-first CLI tool for managing branch-scoped devel
 - Fast rehydration: Resume work in < 60 seconds
 - Low friction: Shorthand commands for rapid capture
 
-## Release Management with GoReleaser
+## Release Management
 
 ### Overview
 
-This project uses [GoReleaser](https://goreleaser.com) to automate releases across multiple platforms and publish to Homebrew.
+This project uses automated semantic versioning with [svu](https://github.com/caarlos0/svu) and [GoReleaser](https://goreleaser.com) to handle releases. Versions are automatically calculated from Conventional Commits.
 
 ### Release Process
 
-**Creating a Release:**
+**Note:** Releases are cut by maintainers.
 
-1. **Tag the version:**
-   ```bash
-   git tag -a v1.0.1 -m "Release v1.0.1"
-   git push origin v1.0.1
-   ```
+**One-time setup:**
+```bash
+make setup
+```
 
-2. **GitHub Actions automatically:**
-   - Runs tests
-   - Builds for macOS and Linux (amd64/arm64)
-   - Creates GitHub release
-   - Publishes to Homebrew tap
+This installs `svu` (semantic version utility) and authenticates with GitHub CLI.
 
-3. **Users install via Homebrew:**
-   ```bash
-   brew install derek-byte/tap/brief
-   ```
+**Creating a Release (Two-step process):**
+
+```bash
+# Step 1: Calculate version and create tag
+make tag
+
+# Step 2: Publish GitHub release
+make publish
+```
+
+**Why two steps?**
+- Separation allows you to tag a release and publish it separately
+- Makes it easier to retry if publishing fails
+- Gives you a chance to verify the version before publishing
+
+**What happens:**
+1. `make tag` analyzes commits since last tag using Conventional Commits
+2. Calculates next semantic version automatically
+3. Creates and pushes git tag
+4. `make publish` runs GoReleaser to build binaries and create GitHub release
+5. Updates Homebrew tap automatically
+
+### Version Bumping
+
+Versions are automatically calculated from commit messages following [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Commit Type | Example | Version Impact |
+|-------------|---------|----------------|
+| `fix:` | `fix(log): handle nil logger` | Patch (v1.0.0 → v1.0.1) |
+| `feat:` | `feat(kafka): add consumer` | Minor (v1.0.0 → v1.1.0) |
+| `feat!:` or `BREAKING CHANGE:` | `feat!: change API` | Major (v1.0.0 → v2.0.0) |
+
+**All commit types:**
+- `feat:` - New feature (minor bump)
+- `fix:` - Bug fix (patch bump)
+- `perf:` - Performance improvement (patch bump)
+- `refactor:` - Code refactoring (patch bump)
+- `docs:` - Documentation only (patch bump)
+- `style:` - Code style changes (patch bump)
+- `test:` - Test additions/changes (patch bump)
+- `build:` - Build system changes (patch bump)
+- `ci:` - CI configuration changes (patch bump)
+- `chore:` - Other changes (patch bump)
+
+**Breaking changes** (major bump) can be indicated with:
+- `!` after type: `feat!:`, `fix!:`, etc.
+- `BREAKING CHANGE:` in commit body
 
 ### GoReleaser Configuration
 
@@ -49,19 +87,19 @@ This project uses [GoReleaser](https://goreleaser.com) to automate releases acro
 
 **Key Settings:**
 
-- **CGO_ENABLED=1**: Required for SQLite (go-sqlite3 dependency)
-- **macOS runner**: GitHub Actions uses macOS for native CGO cross-compilation
-- **Platforms**: darwin/linux, amd64/arm64
+- **CGO_ENABLED=0**: Uses pure Go SQLite (modernc.org/sqlite)
+- **Platforms**: darwin/linux/windows, amd64/arm64
 - **Homebrew tap**: Automatically updates `derek-byte/homebrew-tap`
+- **Changelog**: Auto-generated from Conventional Commits with grouping
 
-**Important Notes:**
-
-1. **SQLite CGO Requirement**: The project uses `github.com/mattn/go-sqlite3` which requires CGO. This means:
-   - Cannot use `CGO_ENABLED=0`
-   - Cross-compilation requires platform-specific toolchains
-   - macOS runner provides best compatibility for darwin builds
-
-2. **Homebrew Token**: The workflow uses `HOMEBREW_TAP_GITHUB_TOKEN` secret to push formula updates to the tap repository. This must be configured in GitHub repository secrets.
+**Changelog Groups:**
+1. Breaking Changes
+2. Features
+3. Bug Fixes
+4. Documentation
+5. Performance
+6. Refactoring
+7. Other Changes
 
 ### Testing Releases Locally
 
@@ -91,18 +129,6 @@ The tap repository is automatically managed by GoReleaser. When a release is cre
 
 **Formula location:** `https://github.com/derek-byte/homebrew-tap/blob/main/Formula/brief.rb`
 
-### Version Bumping Strategy
-
-This project follows semantic versioning (semver):
-- **v1.0.x**: Patch releases (bug fixes)
-- **v1.x.0**: Minor releases (new features, backward compatible)
-- **v2.0.0**: Major releases (breaking changes)
-
-**Commit message prefixes map to version bumps:**
-- `fix:` → patch version
-- `feat:` → minor version
-- `feat!:` or `BREAKING CHANGE:` → major version
-
 ### GitHub Secrets Required
 
 For automated releases, configure these secrets in GitHub repository settings:
@@ -114,6 +140,17 @@ For automated releases, configure these secrets in GitHub repository settings:
 1. Go to GitHub Settings → Developer settings → Personal access tokens
 2. Create new token with `repo` scope
 3. Add to repository secrets as `HOMEBREW_TAP_GITHUB_TOKEN`
+
+### Make Commands
+
+Available commands (run `make help` for full list):
+
+- `make setup` - One-time setup (install svu, authenticate gh)
+- `make tag` - Calculate next version and create git tag
+- `make publish` - Run GoReleaser to create GitHub release
+- `make build` - Build binary locally
+- `make test` - Run all tests
+- `make clean` - Remove build artifacts
 
 ## Development Workflow
 
@@ -192,11 +229,33 @@ git checkout -b test-branch
 ## Contributing
 
 When making changes:
-1. Follow conventional commits (`feat:`, `fix:`, etc.)
-2. Add tests for new features
-3. Run `goreleaser check` before tagging releases
-4. Test on both macOS and Linux if possible
-5. Update this doc when changing architecture
+
+1. **Follow Conventional Commits** - Commit messages directly determine version bumps:
+   - `feat:` - New feature (minor version bump)
+   - `fix:` - Bug fix (patch version bump)
+   - `feat!:` or `BREAKING CHANGE:` - Breaking change (major version bump)
+   - See full list in Release Management section above
+
+2. **Add tests** for new features
+
+3. **Test locally** before releasing:
+   ```bash
+   make build
+   make test
+   goreleaser check
+   ```
+
+4. **Test on multiple platforms** if possible (macOS, Linux, Windows)
+
+5. **Update documentation** when changing architecture or adding features
+
+**Example commit messages:**
+```bash
+feat(ui): add vim-like navigation keybindings
+fix(db): prevent race condition in event creation
+docs: update installation instructions
+feat!: change default database location
+```
 
 ## Troubleshooting
 

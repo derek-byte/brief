@@ -46,21 +46,35 @@ snapshot:
 
 changelog:
   sort: asc
+  groups:
+    - title: Breaking Changes
+      regexp: '^(feat|fix|refactor|perf|docs|style|test|build|ci|chore)(\(.+\))?!: .+$'
+      order: 0
+    - title: Features
+      regexp: '^feat(\(.+\))?: .+$'
+      order: 1
+    - title: Bug Fixes
+      regexp: '^fix(\(.+\))?: .+$'
+      order: 2
+    - title: Documentation
+      regexp: '^docs(\(.+\))?: .+$'
+      order: 3
+    - title: Performance
+      regexp: '^perf(\(.+\))?: .+$'
+      order: 4
+    - title: Refactoring
+      regexp: '^refactor(\(.+\))?: .+$'
+      order: 5
+    - title: Other Changes
+      order: 999
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
       - '^chore:'
       - '^ci:'
-  groups:
-    - title: Features
-      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
-      order: 0
-    - title: 'Bug fixes'
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
-      order: 1
-    - title: Others
-      order: 999
+      - '^build:'
+      - '^test:'
+      - '^typo'
+      - '^merge'
 
 brews:
   - name: brief
