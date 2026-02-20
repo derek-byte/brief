@@ -143,3 +143,4 @@ See [Development Guide](./.claude/agents/CLAUDE.md) for architecture details.
 ## License
 
 Brief was created by [Derek](https://github.com/derek-byte) and is licensed under the [MIT License](./LICENSE).
+# Test hook
