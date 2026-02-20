@@ -171,7 +171,7 @@ type StatusSummary struct {
 // GetStatus returns event counts and last updated time for a repo/branch
 func GetStatus(db *sql.DB, repoID, branch string) (StatusSummary, error) {
 	summary := StatusSummary{
-		Branch:      branch,
+		Branch:       branch,
 		CountsByType: make(map[string]int),
 	}
 
